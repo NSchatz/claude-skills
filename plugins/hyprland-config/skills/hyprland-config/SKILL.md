@@ -1,7 +1,7 @@
 ---
 name: hyprland-config
 description: Use this skill whenever the user wants to set up, configure, or modify Hyprland — the Wayland compositor. This includes creating a full Hyprland environment from scratch, modifying an existing config, configuring companion apps (waybar, wofi, kitty, dunst, mako, hyprlock, hypridle, hyprpaper, swww), setting up monitors, keybindings, window rules, animations, decorations, layouts, workspace rules, and generating an install.sh. Trigger whenever the user mentions hyprland.conf, hyprctl, Hyprland settings, ricing, tiling on Wayland, or any Hyprland-specific topic like gaps, borders, blur, or animations. Also trigger when the user pastes a hyprland.conf snippet and asks for help. Always use this skill for any Hyprland-related configuration — even simple questions about a single keybind or option.
-version: 3.0.0
+version: 3.1.0
 ---
 
 # Hyprland Configuration Skill
@@ -141,7 +141,7 @@ exec-once = udiskie            # if auto-mounting USB
 
 #### env.conf
 
-> **uwsm users**: env vars go in `~/.config/uwsm/env` (format: `export KEY=VAL`) and `~/.config/uwsm/env-hyprland` for `HYPR*`/`AQ_*` vars. Skip generating env.conf and leave a comment in hyprland.conf.
+> **uwsm users**: env vars go in `~/.config/uwsm/env` (format: `export KEY=VAL`) and `~/.config/uwsm/env-hyprland` for `HYPR*`/`AQ_*` vars. Skip generating env.conf and leave a comment in hyprland.conf. **Quote values with special shell characters**: `export QT_QPA_PLATFORM='wayland;xcb'`, `export GDK_BACKEND='wayland,x11,*'` — unquoted semicolons and asterisks will be interpreted by the shell.
 
 ```ini
 env = XCURSOR_SIZE,24
@@ -184,7 +184,7 @@ Generate `config.jsonc` + `style.css`. Include `hyprland/workspaces` (not `sway/
 #### dunst / mako / swaync
 - **dunst**: `dunstrc` with `[global]`, `[urgency_low/normal/critical]`. Match `corner_radius` to hyprland `rounding`.
 - **mako**: `~/.config/mako/config` in plain `key=value` format.
-- **swaync**: `~/.config/swaync/config.json` (behavior) + `~/.config/swaync/style.css` (full CSS). Load `references/ricing.md` for the themed CSS template. Add `layerrule = blur on, match:namespace swaync-control-center` for frosted glass.
+- **swaync**: `~/.config/swaync/config.json` (behavior) + `~/.config/swaync/style.css` (full CSS). Load `references/ricing.md` for the themed CSS template. Add `layerrule = blur true, match:namespace swaync-control-center` for frosted glass.
 
 #### wofi / rofi / fuzzel
 - **wofi**: `~/.config/wofi/config` + `~/.config/wofi/style.css`. Load `references/ricing.md` for CSS template.
@@ -219,7 +219,27 @@ If user chose ags or hyprpanel instead of waybar, load `references/theming.md` f
 
 ### Step 5: install.sh
 
-Detect package manager, install all chosen packages, copy configs to `~/.config/`, enable services (bluetooth, NetworkManager), print next steps. Tailor the package list strictly to what the user chose — don't install tools they said "none" to.
+Generate a robust install script with comprehensive error handling. Tailor the package list strictly to what the user chose — don't install tools they said "none" to.
+
+**Required error handling:**
+- **Pre-flight checks**: refuse to run as root, verify pacman exists, test sudo access, check internet connectivity, keep sudo session alive throughout.
+- **AUR helper**: detect paru/yay. If neither is found, **auto-install yay** by cloning `yay-bin` from AUR and building with `makepkg -si`. Requires `base-devel` and `git`.
+- **Package conflicts**: check for `xdg-desktop-portal-kde` (breaks screensharing), conflicting notification daemons. Prompt user before removing.
+- **Package installation**: try batch install first (fast path). If batch fails, fall back to installing one-by-one to identify which packages failed. Track succeeded/failed separately.
+- **AUR packages**: install individually (not batch) to isolate failures.
+- **Display manager conflicts**: check if `/etc/systemd/system/display-manager.service` symlink exists. If it points to another DM (e.g., sddm), prompt to disable it before enabling greetd. **Never blindly `systemctl enable greetd`** — it will fail if another DM owns the symlink.
+- **greetd config**: back up existing `/etc/greetd/config.toml` before overwriting.
+- **uwsm env validation**: ensure `QT_QPA_PLATFORMTHEME=qt5ct` is set in `~/.config/uwsm/env`. Also export it for the current session so tools like `qt5ct` work immediately after install.
+- **GTK settings**: detect actual installed theme/cursor/icon names by checking filesystem paths (e.g., `/usr/share/themes/catppuccin-mocha-mauve-standard+default`). Don't hardcode names that may not match the actual package contents.
+- **Post-install verification**: check every binary exists with `command -v`, verify font with `fc-list : family | grep -qi`, verify cursor/GTK theme directories exist using glob patterns (e.g., `catppuccin-mocha-*-cursors`), verify `QT_QPA_PLATFORMTHEME` is set in uwsm env.
+- **Summary**: color-coded output with separate sections for errors, warnings, skipped items, and missing commands.
+
+**uwsm env file syntax**: values with special shell characters must be quoted: `export QT_QPA_PLATFORM='wayland;xcb'`, `export GDK_BACKEND='wayland,x11,*'`.
+
+**Catppuccin package naming** (Arch AUR):
+- GTK theme package: `catppuccin-gtk-theme-mocha` — installs themes as `catppuccin-mocha-{accent}-standard+default` (NOT `catppuccin-mocha-standard-{accent}-dark`)
+- Cursor package: `catppuccin-cursors-mocha` — installs as `catppuccin-mocha-{accent}-cursors` (NOT `catppuccin-mocha-dark-cursors` unless using the generic dark variant)
+- Always verify actual installed names by checking `/usr/share/themes/` and `/usr/share/icons/` after install.
 
 ---
 
@@ -231,7 +251,7 @@ Detect package manager, install all chosen packages, copy configs to `~/.config/
 - **`exec-once` vs `exec`**: `exec-once` = startup only; `exec` = every config reload (using `exec` for daemons creates duplicates)
 - **Shadow/blur are subcategories**: `decoration:shadow:enabled = true`, `decoration:blur:size = 8` — not flat `drop_shadow = true`
 - **Gestures**: `workspace_swipe` vars are removed; use `gesture = 3, horizontal, workspace` instead
-- **Window rules**: block syntax `windowrule { match:class = X; float = on }` or anonymous `windowrule = float on, match:class X`. The deprecated form is `windowrule = float, ^(class)$` (old regex syntax). `windowrulev2` no longer exists.
+- **Window rules**: block syntax requires multiline with `name =` as the first field — inline `windowrule { match:class = X; float = on }` does NOT work. Every block MUST have a unique `name`. The deprecated form is `windowrule = float, ^(class)$` (old regex syntax). `windowrulev2` no longer exists.
 - **Opacity is multiplicative**: `decoration:active_opacity = 0.9` × windowrule `opacity 0.9` = 0.81. Use `opacity 0.9 override` for exact values.
 - **Bool values**: only `true`/`false`, `yes`/`no`, `on`/`off`, `0`/`1`
 - **Modifier syntax**: `SUPER`, `SUPER_SHIFT`, `CTRL_ALT` (underscores, no commas)
@@ -239,7 +259,9 @@ Detect package manager, install all chosen packages, copy configs to `~/.config/
 - **waybar**: `hyprland/workspaces` not `sway/workspaces`; `button.active` not `button.focused`
 - **Gradient borders**: `col.active_border = rgba(Aff) rgba(Bff) 45deg` — no spaces around values
 - **`borderangle` style**: use `once`, never `loop` — loop renders at full refresh rate constantly
-- **`layerrule = blur on`** required for bars/launchers — `decoration:blur` only affects windows
+- **`layerrule = blur true`** required for bars/launchers — `decoration:blur` only affects windows. Use `blur true` NOT `blur on` (0.54+).
+- **`ignorezero` / `ignorealpha`** — removed in Hyprland 0.54+. Do not use these layerrule fields; they cause config errors.
+- **layerrule bool values** — use `true`/`false`, not `on`/`off` (unlike most Hyprland bools, layerrule fields are stricter).
 - **xdg-desktop-portal**: only `xdg-desktop-portal-hyprland` + `xdg-desktop-portal-gtk`; remove `-kde`
 
 ---
@@ -277,11 +299,28 @@ bind = SUPER, F9, exec, pkill hyprsunset || hyprsunset -t 4500
 ### Window rules
 
 ```ini
-# Float + center common dialogs
-windowrule { match:class = pavucontrol; float = on; center = on }
-windowrule { match:class = nm-connection-editor; float = on; center = on }
-windowrule { match:class = blueman-manager; float = on; center = on }
+# Float + center common dialogs — every block MUST have name = as first field
+windowrule {
+    name = float-pavucontrol
+    match:class = pavucontrol
+    float = on
+    center = on
+}
+windowrule {
+    name = float-nm-editor
+    match:class = nm-connection-editor
+    float = on
+    center = on
+}
+windowrule {
+    name = float-blueman
+    match:class = blueman-manager
+    float = on
+    center = on
+}
 ```
+
+> **IMPORTANT**: Inline single-line block syntax (`windowrule { match:class = X; float = on }`) does NOT work. Always use multiline blocks with `name =` as the first field.
 
 Named rules can be toggled at runtime without a reload: `hyprctl keyword 'windowrule[my-rule]:enable false'`
 
@@ -312,14 +351,14 @@ Animate with `animation = specialWorkspace, 1, 6, myBezier, slidevert` and dim t
 Waybar, wofi, and notification daemons are Wayland *layers*, not windows — blur them with `layerrule`:
 
 ```ini
-layerrule = blur on, match:namespace waybar
-layerrule = ignorezero on, match:namespace waybar
-layerrule = blur on, match:namespace wofi
-layerrule = blur on, match:namespace rofi
-layerrule = ignorezero on, match:namespace rofi
-layerrule = blur on, match:namespace swaync-control-center
-layerrule = ignorezero on, match:namespace swaync-control-center
+layerrule = blur true, match:namespace waybar
+layerrule = blur true, match:namespace wofi
+layerrule = blur true, match:namespace rofi
+layerrule = blur true, match:namespace notifications
+layerrule = blur true, match:namespace swaync-control-center
 ```
+
+> **IMPORTANT (0.54+)**: `ignorezero` and `ignorealpha` are removed as layerrule field types. `blur on` syntax is also invalid — use `blur true`. Always test layerrules with `hyprctl keyword layerrule "..."` to verify syntax.
 
 Find a layer's namespace: `hyprctl layers`
 
@@ -335,8 +374,11 @@ misc {
 ```
 
 ### Display manager setup
+
+> **CRITICAL**: Only one display manager can own `/etc/systemd/system/display-manager.service`. Always check for and disable existing DMs before enabling a new one.
+
 - **SDDM**: enable `sddm.service`; set `DisplayServer=wayland` in `/etc/sddm.conf.d/10-wayland.conf`
-- **greetd + tuigreet**: enable `greetd.service`; set `command = "Hyprland"` in `/etc/greetd/config.toml`
+- **greetd + tuigreet**: check for existing DM first (`readlink /etc/systemd/system/display-manager.service`), disable it, then enable `greetd.service`. For uwsm: `command = "tuigreet --time --remember --remember-session --asterisks --cmd 'uwsm start hyprland-uwsm.desktop'"` in `/etc/greetd/config.toml`.
 - **TTY**: add `[[ -z $WAYLAND_DISPLAY && $XDG_VTNR -eq 1 ]] && exec Hyprland` to `~/.bash_profile` or `~/.zprofile`
 
 ---

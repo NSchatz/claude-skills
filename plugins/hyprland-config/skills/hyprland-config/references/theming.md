@@ -11,42 +11,46 @@ GTK apps (Nautilus, Thunar, Firefox, most GNOME apps) pick up their theme from m
 ### 1. GTK_THEME env var (immediate, broad effect)
 
 ```ini
-# env.conf
-env = GTK_THEME,Catppuccin-Mocha-Standard-Mauve-Dark
+# env.conf (or ~/.config/uwsm/env for uwsm users)
+env = GTK_THEME,catppuccin-mocha-mauve-standard+default
 ```
 
-Available GTK themes: `catppuccin-gtk` (AUR: `catppuccin-gtk-theme-mocha`), `Dracula`, `TokyoNight`, `Gruvbox-Dark`, `Nordic`.
+> **IMPORTANT**: The AUR package `catppuccin-gtk-theme-mocha` installs themes as `catppuccin-mocha-{accent}-standard+default` (e.g., `catppuccin-mocha-mauve-standard+default`), NOT `Catppuccin-Mocha-Standard-Mauve-Dark`. Always check `/usr/share/themes/` for actual installed names. The install script should detect names dynamically rather than hardcoding them.
+
+Available GTK themes: `catppuccin-gtk-theme-mocha` (AUR), `Dracula`, `TokyoNight`, `Gruvbox-Dark`, `Nordic`.
 
 ### 2. settings.ini files
 
 ```ini
 # ~/.config/gtk-3.0/settings.ini
 [Settings]
-gtk-theme-name = Catppuccin-Mocha-Standard-Mauve-Dark
-gtk-icon-theme-name = Papirus-Dark
-gtk-cursor-theme-name = Bibata-Modern-Classic
-gtk-cursor-theme-size = 24
-gtk-font-name = JetBrainsMono Nerd Font 11
-gtk-application-prefer-dark-theme = 1
+gtk-theme-name=catppuccin-mocha-mauve-standard+default
+gtk-icon-theme-name=Papirus-Dark
+gtk-cursor-theme-name=catppuccin-mocha-mauve-cursors
+gtk-cursor-theme-size=24
+gtk-font-name=JetBrainsMono Nerd Font 11
+gtk-application-prefer-dark-theme=1
 ```
 
 ```ini
 # ~/.config/gtk-4.0/settings.ini
 [Settings]
-gtk-theme-name = Catppuccin-Mocha-Standard-Mauve-Dark
-gtk-icon-theme-name = Papirus-Dark
-gtk-cursor-theme-name = Bibata-Modern-Classic
-gtk-cursor-theme-size = 24
-gtk-font-name = JetBrainsMono Nerd Font 11
-gtk-application-prefer-dark-theme = 1
+gtk-theme-name=catppuccin-mocha-mauve-standard+default
+gtk-icon-theme-name=Papirus-Dark
+gtk-cursor-theme-name=catppuccin-mocha-mauve-cursors
+gtk-cursor-theme-size=24
+gtk-font-name=JetBrainsMono Nerd Font 11
+gtk-application-prefer-dark-theme=1
 ```
+
+> **NOTE**: `nwg-look` writes settings without spaces around `=`. Both formats work but nwg-look will rewrite them without spaces. If the user runs nwg-look, the install script should detect Adwaita defaults and re-apply Catppuccin settings.
 
 ### 3. gsettings (runtime, affects running apps)
 
 ```bash
-gsettings set org.gnome.desktop.interface gtk-theme      'Catppuccin-Mocha-Standard-Mauve-Dark'
+gsettings set org.gnome.desktop.interface gtk-theme      'catppuccin-mocha-mauve-standard+default'
 gsettings set org.gnome.desktop.interface icon-theme      'Papirus-Dark'
-gsettings set org.gnome.desktop.interface cursor-theme    'Bibata-Modern-Classic'
+gsettings set org.gnome.desktop.interface cursor-theme    'catppuccin-mocha-mauve-cursors'
 gsettings set org.gnome.desktop.interface cursor-size     24
 gsettings set org.gnome.desktop.interface font-name       'JetBrainsMono Nerd Font 11'
 gsettings set org.gnome.desktop.interface color-scheme    'prefer-dark'
@@ -75,9 +79,14 @@ Qt apps need their own theming setup — they don't use GTK themes.
 ### qt5ct + qt6ct (settings GUIs)
 
 ```ini
-# env.conf
+# env.conf (non-uwsm)
 env = QT_QPA_PLATFORMTHEME,qt5ct   # or qt6ct; qt5ct often handles both
+
+# uwsm env (~/.config/uwsm/env)
+export QT_QPA_PLATFORMTHEME=qt5ct
 ```
+
+> **CRITICAL**: Without `QT_QPA_PLATFORMTHEME` set, qt5ct will refuse to launch with the error: "The QT_QPA_PLATFORMTHEME environment variable is not set (required values: qt5ct or qt6ct)." For uwsm users, this env var must be in `~/.config/uwsm/env` AND won't take effect until the next Hyprland session. The install script should also `export QT_QPA_PLATFORMTHEME=qt5ct` for the current session so the user can run qt5ct immediately after install.
 
 ```bash
 # Install
@@ -162,7 +171,9 @@ cursor {
 
 Set `gtk-cursor-theme-name` in both `settings.ini` files (see GTK section).
 
-**Available cursor themes:** `Bibata-Modern-Classic` (AUR: `bibata-cursor-theme`), `Catppuccin-Mocha-Dark` (AUR: `catppuccin-cursors-mocha`), `Nordzy-cursors` (AUR).
+**Available cursor themes:** `Bibata-Modern-Classic` (AUR: `bibata-cursor-theme`), Catppuccin per-accent (AUR: `catppuccin-cursors-mocha` — installs `catppuccin-mocha-{accent}-cursors`, e.g., `catppuccin-mocha-mauve-cursors`), `Nordzy-cursors` (AUR).
+
+> **IMPORTANT**: `catppuccin-cursors-mocha` installs per-accent cursor themes (mauve, blue, green, etc.), NOT a single `Catppuccin-Mocha-Dark`. Check `/usr/share/icons/catppuccin-mocha-*-cursors` for installed variants. The install script should detect the actual installed cursor name dynamically.
 
 ---
 
