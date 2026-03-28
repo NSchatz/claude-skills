@@ -108,6 +108,118 @@
           "text": "Uses modern windowrule { } block syntax, not deprecated 'windowrule = float, ^(class)$'"
         }
       ]
+    },
+    {
+      "id": 4,
+      "prompt": "I want a full Hyprland setup with Catppuccin Mocha, and I really want the bar to look polished — like the floating pill style I see in r/unixporn posts. Single 2560x1440 144Hz monitor, kitty, wofi, dunst, JetBrainsMono Nerd Font. hyprpaper for wallpaper, hyprlock, hypridle. US keyboard, no touchpad.",
+      "expected_output": "A complete Hyprland config set where the waybar config.jsonc and style.css are the standout — floating pill bar with transparent background, rounded module containers, Catppuccin Mocha @define-color palette, Nerd Font icons for every module, state-based styling (battery warning/critical, muted audio, disconnected network), and hover effects.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "waybar-floating-pill",
+          "text": "waybar style.css sets window#waybar background to transparent (not a solid color)"
+        },
+        {
+          "id": "waybar-rounded-containers",
+          "text": "waybar style.css uses border-radius on module containers (modules-left/center/right or individual modules)"
+        },
+        {
+          "id": "waybar-define-color",
+          "text": "waybar style.css uses @define-color to define a color palette (at least 5 named colors)"
+        },
+        {
+          "id": "waybar-nerd-font-icons",
+          "text": "waybar config.jsonc uses Nerd Font icons (unicode glyphs like , , , etc.) in module formats, not plain text labels"
+        },
+        {
+          "id": "waybar-margin-floating",
+          "text": "waybar config.jsonc includes margin-top or margin properties to create the floating effect"
+        },
+        {
+          "id": "waybar-hyprland-workspaces",
+          "text": "waybar config uses hyprland/workspaces (not sway/workspaces)"
+        },
+        {
+          "id": "waybar-active-not-focused",
+          "text": "waybar style.css uses button.active for workspace styling (not button.focused)"
+        },
+        {
+          "id": "waybar-state-styling",
+          "text": "waybar style.css includes state-based styling for at least 2 of: battery.warning, battery.critical, network.disconnected, pulseaudio.muted"
+        },
+        {
+          "id": "waybar-module-count",
+          "text": "waybar config includes at least 6 modules (workspaces, window, clock, pulseaudio/wireplumber, network, tray)"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "I already have Hyprland configured but my waybar looks boring — it's just a flat grey bar with plain text. I want a modern floating pill bar with Gruvbox Dark colors, icons for each module, and a power button. Desktop, no battery needed. Just give me the waybar config.jsonc and style.css.",
+      "expected_output": "A standalone waybar config.jsonc and style.css pair with Gruvbox Dark colors defined via @define-color, floating pill design, Nerd Font icons, a custom/power module, and polished CSS with hover effects and state styling.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "gruvbox-colors",
+          "text": "style.css defines Gruvbox Dark colors (e.g. #282828, #ebdbb2, #fb4934, #b8bb26, #fabd2f, #83a598, or similar gruvbox palette)"
+        },
+        {
+          "id": "power-button",
+          "text": "config.jsonc includes a custom/power module"
+        },
+        {
+          "id": "no-battery",
+          "text": "config.jsonc does not include a battery module (user said desktop, no battery)"
+        },
+        {
+          "id": "floating-style",
+          "text": "style.css creates a floating pill effect (transparent waybar background + rounded containers)"
+        },
+        {
+          "id": "icon-formats",
+          "text": "config.jsonc uses icon characters in module format strings (not plain text like 'Volume:' or 'CPU:')"
+        },
+        {
+          "id": "only-waybar-files",
+          "text": "Output contains only waybar config.jsonc and style.css (not a full Hyprland config set — user already has that)"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Setting up Hyprland on my laptop. Two monitors: eDP-1 (1920x1080 60Hz) built-in and DP-1 (2560x1440 165Hz) external on the right. I need waybar to show battery, backlight, wifi, bluetooth, volume, clock, workspaces. Tokyo Night theme, JetBrainsMono Nerd Font. I want each module to be its own individual pill/capsule — not grouped sections. Kitty terminal, wofi launcher, mako notifications, hyprlock, hypridle.",
+      "expected_output": "Full Hyprland config with a waybar that uses individual module pills (each module is its own rounded capsule with gaps between them), Tokyo Night colors, laptop modules (battery with states, backlight, wifi with signal strength, bluetooth). The CSS should style each module selector individually with background-color and border-radius rather than styling .modules-left/center/right.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "individual-pills",
+          "text": "waybar style.css applies background-color and border-radius to individual module selectors (#clock, #battery, #network, etc.) rather than only to .modules-left/.modules-center/.modules-right"
+        },
+        {
+          "id": "battery-module",
+          "text": "waybar config includes a battery module with states (warning and/or critical thresholds)"
+        },
+        {
+          "id": "backlight-module",
+          "text": "waybar config includes a backlight module"
+        },
+        {
+          "id": "bluetooth-module",
+          "text": "waybar config includes a bluetooth module"
+        },
+        {
+          "id": "tokyo-night-colors",
+          "text": "style.css uses Tokyo Night colors (e.g. #1a1b26, #a9b1d6, #7aa2f7, #bb9af7, #9ece6a, or similar)"
+        },
+        {
+          "id": "dual-monitor-config",
+          "text": "monitors.conf or hyprland.conf includes correct monitor lines for eDP-1 (1920x1080@60) and DP-1 (2560x1440@165) with DP-1 to the right"
+        },
+        {
+          "id": "wifi-signal",
+          "text": "waybar network module format includes signal strength ({signalStrength}) for wifi"
+        }
+      ]
     }
   ]
 }

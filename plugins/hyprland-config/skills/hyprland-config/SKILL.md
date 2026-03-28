@@ -29,6 +29,7 @@ Load these as needed — not all at once:
 | `references/hypridle.md` | hypridle configuration |
 | `references/hyprpaper.md` | hyprpaper configuration |
 | `references/xwayland.md` | XWayland, HiDPI setup |
+| `references/waybar.md` | Waybar config.jsonc structure, CSS styling patterns, Hyprland modules, design patterns (floating pill, color-blocked, minimal), custom modules, complete examples |
 | `references/ricing.md` | Decoration/blur/shadow details, animation presets, smart gaps, special workspaces, hyprlock widgets, swaync/rofi ricing, plugins, common mistakes |
 | `references/theming.md` | GTK/Qt theming, icon themes, cursor consistency, fontconfig, pywal/wallust, ags/hyprpanel |
 
@@ -84,6 +85,7 @@ Read `references/packages.md` now. Work through these groups, batching related q
 - **Touchpad?** (yes/no — affects input config)
 
 #### Group F — Visual style *(ask all at once; user can say "all defaults")*
+- **Bar style:** floating pills (rounded modules floating above desktop — most popular) / solid bar (traditional flat bar) / color-blocked (each module gets its own bold color) / minimal (subtle, icon-only)? *Default: floating pills*
 - **Gaps:** inner (between windows) / outer (from screen edge)? *Common: 8/16 or 10/20; default: 5/20*
 - **Border size:** pixels? *Rices commonly use 2–3; default: 1*
 - **Corner rounding:** radius in px? *Rices commonly use 8–12; default: 0*
@@ -306,7 +308,21 @@ submap = reset
 Generate configs that use the **same color palette throughout** — if Catppuccin Mocha, use it in waybar CSS, dunstrc, kitty.conf, wofi style.css, and hyprlock. This coherence is what separates a polished rice from a patchwork.
 
 #### waybar
-Generate `config.jsonc` + `style.css`. Include `hyprland/workspaces` (not `sway/workspaces`), `hyprland/window`, clock, tray, audio, network. In CSS: use `#workspaces button.active` (not `.focused`).
+Load `references/waybar.md` for comprehensive guidance. Generate `config.jsonc` + `style.css`.
+
+Key rules:
+- Use `hyprland/workspaces` (never `sway/workspaces`) and `hyprland/window`
+- In CSS: `#workspaces button.active` (not `.focused`)
+- Use `@define-color` at the top of `style.css` to define the full color palette — every module should reference these colors for consistency
+- Always include: workspaces, window title, clock, tray, audio (pulseaudio or wireplumber), network. Add battery + backlight for laptops
+- Default to the **floating pill bar** style (transparent `window#waybar`, rounded `.modules-left/center/right` containers, `margin-top/left/right` for floating effect) — this is the most popular community pattern and looks significantly more polished than a flat solid bar
+- Include `"reload_style_on_change": true` so users can iterate on CSS without restarting
+- Set `"margin-top": 6, "margin-left": 8, "margin-right": 8` for the floating effect
+- Use Nerd Font icons for every module (not plain text labels)
+- Add hover effects and state-based styling (battery warning/critical, network disconnected, audio muted)
+- Include a power button module (`custom/power`) with wlogout or a simple menu
+
+The bar is one of the most visible parts of a rice — a flat, unstyled bar with plain text labels immediately looks unfinished. The difference between a good and great config is in the CSS: rounded corners, consistent color-coded icons, smooth transitions, and proper spacing.
 
 #### dunst / mako / swaync
 - **dunst**: `dunstrc` with `[global]`, `[urgency_low/normal/critical]`. Match `corner_radius` to hyprland `rounding`.
