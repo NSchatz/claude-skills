@@ -1,0 +1,113 @@
+{
+  "skill_name": "hyprland-config",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I just installed Arch Linux and want a full Hyprland setup. I have a single 1920x1080 144Hz monitor, US keyboard, touchpad on a laptop. I want kitty as terminal, wofi as launcher, waybar as bar, dunst for notifications, hyprpaper for wallpaper, hyprlock for locking, hypridle for idle. Go with Catppuccin Mocha theme and JetBrainsMono Nerd Font. Include brightness and media keys.",
+      "expected_output": "A complete set of modular config files covering hyprland.conf, monitors.conf, autostart.conf, env.conf, keybinds.conf, windowrules.conf, animations.conf, hyprpaper.conf, hyprlock.conf, hypridle.conf, plus waybar/config.jsonc, waybar/style.css, dunst/dunstrc, wofi/config, wofi/style.css, kitty/kitty.conf, and an install.sh. All files should use Catppuccin Mocha colors consistently.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "modular-hypr-files",
+          "text": "Output includes at minimum: hyprland.conf, monitors.conf, keybinds.conf, autostart.conf, env.conf"
+        },
+        {
+          "id": "companion-configs",
+          "text": "Output includes configs for at least 3 companion apps (waybar, dunst, wofi, kitty, hyprlock, hypridle, hyprpaper)"
+        },
+        {
+          "id": "install-sh",
+          "text": "An install.sh script is generated that includes package installation commands"
+        },
+        {
+          "id": "hyprlock-config",
+          "text": "hyprlock.conf is generated (not just mentioned) — hyprlock requires a config to render"
+        },
+        {
+          "id": "hypridle-config",
+          "text": "hypridle.conf is generated with at least one listener block"
+        },
+        {
+          "id": "waybar-hyprland-module",
+          "text": "waybar config uses 'hyprland/workspaces' (not 'sway/workspaces')"
+        },
+        {
+          "id": "catppuccin-colors",
+          "text": "Catppuccin Mocha colors are used (e.g. #1e1e2e background, #cdd6f4 text, or similar mocha palette)"
+        },
+        {
+          "id": "brightness-keys",
+          "text": "XF86MonBrightnessUp and XF86MonBrightnessDown keybinds are present"
+        },
+        {
+          "id": "media-keys",
+          "text": "XF86AudioRaiseVolume / XF86AudioLowerVolume / XF86AudioMute keybinds are present"
+        },
+        {
+          "id": "polkit-autostart",
+          "text": "A polkit agent is started in autostart (hyprpolkitagent or polkit-gnome)"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I have two monitors: DP-1 is my primary 2560x1440 at 165Hz on the left, and HDMI-A-1 is a 1920x1080 60Hz monitor on the right. I want workspace 1-5 on DP-1 and 6-10 on HDMI-A-1. Here's my current monitor section:\n\nmonitor=,preferred,auto,1\n\nCan you update it?",
+      "expected_output": "Corrected monitors.conf with explicit lines for DP-1 (2560x1440@165, 0x0) and HDMI-A-1 (1920x1080@60, 2560x0), plus workspace rules assigning 1-5 to DP-1 and 6-10 to HDMI-A-1.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "dp1-correct",
+          "text": "Output contains a monitor line for DP-1 with 2560x1440@165"
+        },
+        {
+          "id": "hdmi-correct",
+          "text": "Output contains a monitor line for HDMI-A-1 with 1920x1080@60"
+        },
+        {
+          "id": "positioning",
+          "text": "DP-1 at x=0 (left), HDMI-A-1 at x=2560 (right)"
+        },
+        {
+          "id": "workspace-rules",
+          "text": "Workspace rules assign 1-5 to DP-1 and 6-10 to HDMI-A-1"
+        },
+        {
+          "id": "scale-set",
+          "text": "Scale factor is explicitly set for both monitors"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "How do I make pavucontrol, nm-connection-editor, and blueman-manager all open as floating windows centered on screen? Also I want my browser (class: firefox) to always open on workspace 2.",
+      "expected_output": "windowrules.conf snippet with float+center rules for the 3 apps and a workspace rule for firefox, using modern windowrule {} block syntax.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "pavucontrol-float",
+          "text": "Float rule applied to pavucontrol"
+        },
+        {
+          "id": "nm-connection-float",
+          "text": "Float rule applied to nm-connection-editor"
+        },
+        {
+          "id": "blueman-float",
+          "text": "Float rule applied to blueman-manager"
+        },
+        {
+          "id": "centering",
+          "text": "Center rules applied to the floating apps"
+        },
+        {
+          "id": "firefox-workspace",
+          "text": "Firefox assigned to workspace 2"
+        },
+        {
+          "id": "uses-modern-syntax",
+          "text": "Uses modern windowrule { } block syntax, not deprecated 'windowrule = float, ^(class)$'"
+        }
+      ]
+    }
+  ]
+}

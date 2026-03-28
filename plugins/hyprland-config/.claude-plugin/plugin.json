@@ -1,0 +1,8 @@
+{
+  "name": "hyprland-config",
+  "version": "3.0.0",
+  "description": "Hyprland Wayland compositor configuration — full setup, companion apps, keybinds, window rules, and more",
+  "author": {
+    "name": "nschatz"
+  }
+}
