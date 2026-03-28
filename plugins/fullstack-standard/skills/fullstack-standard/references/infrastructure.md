@@ -6,63 +6,53 @@ Both Dockerfiles use multi-stage builds. Production images contain no dev depend
 
 ### `infrastructure/docker/api.Dockerfile`
 
+The production stage uses Google's **distroless** image (`gcr.io/distroless/nodejs20-debian12`), which contains only the Node.js runtime — no shell, no package manager, no utilities. This dramatically reduces the attack surface and image size (~60MB vs ~200MB for `node:alpine`).
+
 ```dockerfile
 # ---- Build Stage ----
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install pnpm via Corepack (pinned version for reproducibility)
+RUN corepack enable && corepack prepare pnpm@9 --activate
 
-# Copy workspace files
+# Copy manifest files first to maximize layer cache hits
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY packages/config/package.json ./packages/config/
 COPY packages/database/package.json ./packages/database/
 COPY packages/shared/package.json ./packages/shared/
 COPY apps/api/package.json ./apps/api/
 
-# Install all dependencies (including dev for build)
 RUN pnpm install --frozen-lockfile
 
-# Copy source
+# Copy source after deps are installed (separate layer)
 COPY packages/ ./packages/
 COPY apps/api/ ./apps/api/
 
-# Generate Prisma client
+# Generate Prisma client and build
 RUN pnpm --filter @myapp/database exec prisma generate
-
-# Build
 RUN pnpm --filter api build
 
-# ---- Production Stage ----
-FROM node:20-alpine AS runner
+# ---- Production Stage (distroless) ----
+# No shell, no package manager — minimal attack surface
+FROM gcr.io/distroless/nodejs20-debian12 AS runner
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
-COPY packages/config/package.json ./packages/config/
-COPY packages/database/package.json ./packages/database/
-COPY packages/shared/package.json ./packages/shared/
-COPY apps/api/package.json ./apps/api/
-
-# Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod
-
-# Copy built output and Prisma client
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/packages/database/prisma ./packages/database/prisma
-COPY --from=builder /app/node_modules/.pnpm ./node_modules/.pnpm
+COPY --from=builder /app/package.json ./
 
-RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nestjs
-USER nestjs
+# distroless has a built-in nonroot user (uid 65532)
+USER nonroot
 
 EXPOSE 3001
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD wget -qO- http://localhost:3001/api/health || exit 1
-
-CMD ["node", "apps/api/dist/main.js"]
+# Note: distroless has no shell, so HEALTHCHECK CMD must use the array form
+# The health check is handled at the orchestrator level (ECS/K8s) instead
+CMD ["apps/api/dist/main.js"]
 ```
+
+For debugging in development, swap `gcr.io/distroless/nodejs20-debian12` for `gcr.io/distroless/nodejs20-debian12:debug` — the `:debug` tag adds a busybox shell (`/busybox/sh`) for inspection.
 
 ### `infrastructure/docker/web.Dockerfile`
 
@@ -71,7 +61,7 @@ CMD ["node", "apps/api/dist/main.js"]
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@9 --activate
 
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY packages/config/package.json ./packages/config/
@@ -83,13 +73,14 @@ RUN pnpm install --frozen-lockfile
 COPY packages/ ./packages/
 COPY apps/web/ ./apps/web/
 
+# Inject the API URL at build time (Vite bakes it into the bundle)
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
 
 RUN pnpm --filter web build
 
 # ---- Production Stage (nginx) ----
-FROM nginx:alpine AS runner
+FROM nginx:1.27-alpine AS runner
 
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
 COPY infrastructure/docker/nginx.conf /etc/nginx/conf.d/default.conf
@@ -230,6 +221,12 @@ volumes:
 
 ### `ci.yml` (PR Checks)
 
+Key practices:
+- `pnpm/action-setup` with `run_install: false` — let `setup-node`'s `cache: 'pnpm'` handle the store cache
+- `concurrency` — cancels in-progress runs for the same PR when a new commit is pushed
+- Use `--affected` with Turborepo to skip unchanged packages
+- Use `TURBO_TOKEN` + `TURBO_TEAM` for remote caching if available
+
 ```yaml
 name: CI
 
@@ -238,6 +235,14 @@ on:
     branches: [main, develop]
   push:
     branches: [main, develop]
+
+# Cancel in-progress runs for the same branch/PR on new pushes
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   ci:
@@ -260,11 +265,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # Required for Turborepo --affected to compare against base branch
 
+      # Step 1: Set up pnpm (run_install: false — setup-node handles caching)
       - uses: pnpm/action-setup@v4
         with:
-          version: latest
+          version: 9
+          run_install: false
 
+      # Step 2: Set up Node with pnpm store cache
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -274,7 +284,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Typecheck
-        run: pnpm typecheck
+        run: pnpm turbo run typecheck --affected
 
       - name: Lint
         run: pnpm lint
@@ -287,13 +297,16 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/myapp_test
 
-      - name: Unit tests
-        run: pnpm test -- --coverage
+      - name: Unit + integration tests
+        run: pnpm turbo run test --affected -- --coverage
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/myapp_test
           TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/myapp_test
-          JWT_SECRET: test-secret-32-chars-minimum-length
+          JWT_SECRET: test-secret-at-least-32-chars-long
+          JWT_REFRESH_SECRET: test-refresh-secret-at-least-32-chars
           NODE_ENV: test
+          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+          TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
@@ -397,6 +410,38 @@ Same as `cd-staging.yml` with:
 - A manual approval gate (GitHub Environments with required reviewers)
 
 ---
+
+## `.dockerignore`
+
+Always include a `.dockerignore` at the repo root to prevent sensitive files and large directories from being sent to the build context:
+
+```
+node_modules
+.git
+**/.env
+**/.env.*
+**/dist
+**/.turbo
+**/coverage
+*.md
+.github
+e2e
+```
+
+---
+
+## Kubernetes: Kustomize vs Helm
+
+**Use Kustomize for your own applications. Use Helm for third-party off-the-shelf software.**
+
+| Scenario | Tool |
+|----------|------|
+| Deploying your own microservices (web, api) | **Kustomize** |
+| Installing Prometheus, cert-manager, ingress-nginx | **Helm** |
+| GitOps with Argo CD or Flux | **Kustomize** (native support) |
+| Sharing infra config as a distributable package | **Helm** |
+
+Kustomize is built into `kubectl` (`kubectl apply -k ./`) and uses pure YAML patching — no templating language, no `{{ .Values.something }}`. The overlay model maps naturally to dev/staging/production environment promotion.
 
 ## Kubernetes (Kustomize)
 

@@ -97,23 +97,57 @@ describe('PostsService', () => {
 
 Integration tests boot the real NestJS application against a test database. They test the full HTTP stack including guards, pipes, and interceptors.
 
-### Setup
+### Unit Testing with Mocked Prisma
+
+For pure service-layer unit tests, mock Prisma with `jest-mock-extended` (or `vitest-mock-extended`). This avoids database dependencies and is fast.
 
 ```ts
-// test/setup.ts
+// test/prisma-mock.ts
+import { mockDeep, mockReset, type DeepMockProxy } from 'jest-mock-extended';
 import { PrismaClient } from '@myapp/database';
 
-const prisma = new PrismaClient();
+export const prismaMock = mockDeep<PrismaClient>();
+
+beforeEach(() => {
+  mockReset(prismaMock);
+});
+```
+
+Use `prismaMock` as the `useValue` for `PrismaService` in unit tests (same pattern shown in the Backend Unit Test section above).
+
+### Integration Test Setup
+
+Integration tests run against a **real PostgreSQL database** — the test database defined by `TEST_DATABASE_URL`. Rather than truncating tables between tests (which is slow and order-dependent), use PostgreSQL savepoints to wrap each test in a transaction that is always rolled back:
+
+```ts
+// test/db-helpers.ts
+import { PrismaClient } from '@myapp/database';
+
+const prisma = new PrismaClient({
+  datasources: { db: { url: process.env.TEST_DATABASE_URL } },
+});
 
 beforeAll(async () => {
-  // Runs prisma migrate deploy against TEST_DATABASE_URL
-  await prisma.$executeRaw`TRUNCATE TABLE "users", "posts" RESTART IDENTITY CASCADE`;
+  await prisma.$connect();
+  // Apply any pending migrations against the test DB
+});
+
+beforeEach(async () => {
+  await prisma.$executeRaw`SAVEPOINT test_savepoint`;
+});
+
+afterEach(async () => {
+  await prisma.$executeRaw`ROLLBACK TO SAVEPOINT test_savepoint`;
 });
 
 afterAll(async () => {
   await prisma.$disconnect();
 });
+
+export { prisma };
 ```
+
+This gives each test a clean slate without the overhead of schema drops or table truncations.
 
 ### Integration Test Pattern
 
@@ -360,3 +394,44 @@ Cover the following flows at minimum:
 - Auth: redirect to Google OAuth, callback handling, protected route redirect
 - Core CRUD: create, view, update, delete for each primary resource
 - Error states: 404 page, form validation errors
+
+### CI Setup
+
+Use `--shard` to parallelize across multiple runners:
+
+```yaml
+# In ci.yml
+strategy:
+  matrix:
+    shard: [1, 2, 3, 4]
+
+steps:
+  - name: Install Playwright browsers
+    run: npx playwright install --with-deps chromium   # Only install what you test
+
+  - name: Run Playwright tests
+    run: npx playwright test --shard=${{ matrix.shard }}/4
+    env:
+      PLAYWRIGHT_BASE_URL: http://localhost:5173
+      TEST_ACCESS_TOKEN: ${{ secrets.TEST_ACCESS_TOKEN }}
+
+  - name: Upload test results
+    if: always()
+    uses: actions/upload-artifact@v4
+    with:
+      name: playwright-results-${{ matrix.shard }}
+      path: playwright-report/
+```
+
+**CI practices:**
+- Run on Linux only — cheaper than macOS/Windows and behavior is identical for web apps
+- Install only the browsers you actually test against — don't install all three browsers in CI
+- Upload traces and screenshots as artifacts on failure to enable debugging without re-running
+- Use `retries: 2` in config for CI flakiness tolerance — but treat any consistently-retrying test as a bug to fix, not ignore
+
+### Anti-Patterns
+
+- **Never use `page.waitForTimeout(n)`** — this is a time-based sleep that makes tests slow and brittle. Use web-first assertions (`await expect(locator).toBeVisible()`) which auto-retry until the condition is met or timeout.
+- Do not test third-party UIs — mock the Google OAuth flow at the network layer with `page.route()` to stub the OAuth callback; don't actually hit Google in tests.
+- Do not share browser state between tests — each test gets a fresh browser context. Use Playwright's `storageState` to efficiently reuse authenticated sessions without re-logging in every test.
+- Avoid CSS class selectors and XPath — use role-based locators (`getByRole`, `getByLabel`) that survive refactoring.

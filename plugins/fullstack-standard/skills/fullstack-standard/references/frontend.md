@@ -13,14 +13,17 @@
 
 ## Vite Configuration
 
+Use the first-party `@tailwindcss/vite` plugin (Tailwind v4) instead of PostCSS. It provides significantly faster HMR and eliminates the PostCSS config file.
+
 ```ts
 // apps/web/vite.config.ts
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 import path from 'node:path';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   resolve: {
     alias: { '@': path.resolve(__dirname, 'src') },
   },
@@ -74,6 +77,8 @@ Always use `useAppDispatch` and `useAppSelector` — never the untyped versions.
 
 ### Base API (RTK Query)
 
+There must be exactly **one `createApi` call per backend base URL**. Never create multiple API slices for the same server — use `injectEndpoints` to add feature-level endpoints to the shared base. Multiple API slices cause cache fragmentation and make tag invalidation unreliable.
+
 ```ts
 // src/services/baseApi.ts
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
@@ -90,14 +95,14 @@ export const baseApi = createApi({
       return headers;
     },
   }),
-  tagTypes: ['User'],   // expand as needed
+  tagTypes: ['User'],   // expand as needed per feature
   endpoints: () => ({}),
 });
 ```
 
 ### Feature Slice + API Pattern
 
-Each feature owns its slice and its RTK Query endpoints. Inject endpoints into the base API:
+Each feature injects its endpoints into the base API and owns its own slice for local UI state:
 
 ```ts
 // src/features/user/userApi.ts
@@ -197,23 +202,30 @@ export function App() {
 
 ### Setup
 
-```ts
-// tailwind.config.ts
-import type { Config } from 'tailwindcss';
+Tailwind v4 uses a CSS-first configuration approach. The `tailwind.config.js` file is no longer needed — theme customization lives in the CSS file via `@theme`. The `@tailwindcss/vite` plugin handles content detection automatically (no `content:` array needed).
 
-export default {
-  content: ['./index.html', './src/**/*.{ts,tsx}'],
-  theme: {
-    extend: {
-      colors: {
-        // Define project-specific colors here
-        primary: { DEFAULT: '#3B82F6', dark: '#1D4ED8' },
-      },
-    },
-  },
-  plugins: [],
-} satisfies Config;
+```css
+/* src/styles/globals.css */
+@import "tailwindcss";
+
+@theme {
+  /* Define project tokens here — automatically exposed as CSS variables */
+  --color-primary: oklch(0.6 0.2 250);
+  --color-primary-dark: oklch(0.45 0.2 250);
+  --font-sans: "Inter", sans-serif;
+}
 ```
+
+```ts
+// main.tsx
+import '@/styles/globals.css';
+```
+
+**Notable Tailwind v4 behavior changes to be aware of:**
+- `cursor-pointer` is no longer set on buttons by default (browser default `cursor-default` applies)
+- Placeholder text color is now 50% opacity of the current color, not a fixed gray
+- Gradient utilities changed: `bg-gradient-to-r` → `bg-linear-to-r`
+- Container queries are built-in — no plugin needed (`@container`, `@lg:`)
 
 ### Component Pattern
 
@@ -341,24 +353,84 @@ export function useDebounce<T>(value: T, delay: number): T {
 
 ---
 
-## Frontend Testing (Jest)
+## React 19 Notes
+
+React 19 (December 2024) is the current stable version. Key changes that affect how we write components:
+
+- **`forwardRef` is deprecated** — refs are now a direct prop. Stop wrapping components in `forwardRef`.
+- **`use()` hook** — can be called conditionally; use it to unwrap Promises and Context.
+- **Actions API** — pass async functions to `<form action={...}>` for built-in pending/error states via `useActionState` and `useFormStatus`.
+- **Auto-memoization** (React Compiler, opt-in) — reduces need for `useMemo`/`useCallback` when enabled.
+
+For new components, write refs as props directly:
+
+```tsx
+// React 19 — ref is a regular prop
+function Input({ ref, ...props }: InputHTMLAttributes<HTMLInputElement> & { ref?: Ref<HTMLInputElement> }) {
+  return <input ref={ref} {...props} />;
+}
+```
+
+---
+
+## Frontend Testing (Jest + React Testing Library)
+
+**Prefer Vitest over Jest** for Vite projects — it shares Vite's config, runs faster, and uses identical syntax. If starting fresh, use Vitest. The patterns below apply to both.
 
 ```ts
-// jest.config.ts (apps/web)
-import type { Config } from 'jest';
+// vitest.config.ts (apps/web) — preferred for Vite projects
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
 
-export default {
-  preset: 'ts-jest',
-  testEnvironment: 'jsdom',
-  setupFilesAfterFramework: ['<rootDir>/src/test/setup.ts'],
-  moduleNameMapper: { '^@/(.*)$': '<rootDir>/src/$1' },
-  coverageThreshold: { global: { lines: 80, functions: 80 } },
-} satisfies Config;
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+    coverage: { thresholds: { lines: 80, functions: 80 } },
+  },
+  resolve: { alias: { '@': '/src' } },
+});
 ```
 
 ```ts
 // src/test/setup.ts
 import '@testing-library/jest-dom';
+```
+
+### Locator Priority
+
+Always prefer accessible, semantic locators. This order matches how real users and screen readers perceive the page:
+
+```ts
+// Best — role-based
+screen.getByRole('button', { name: /submit/i })
+screen.getByLabelText(/email/i)
+screen.getByText(/welcome/i)
+
+// Acceptable — explicit test hook
+screen.getByTestId('submit-button')
+
+// Avoid — fragile, couples tests to implementation
+container.querySelector('.btn-primary')
+```
+
+### User Events
+
+Always use `@testing-library/user-event` instead of `fireEvent`. `userEvent` simulates real browser event sequences (pointerdown, mousedown, focus, click, etc.), while `fireEvent` dispatches a single synthetic event and misses intermediate states.
+
+```tsx
+import userEvent from '@testing-library/user-event';
+
+it('submits the form', async () => {
+  const user = userEvent.setup();
+  render(<LoginForm onSubmit={onSubmit} />);
+
+  await user.type(screen.getByLabelText(/email/i), 'jane@example.com');
+  await user.click(screen.getByRole('button', { name: /login/i }));
+
+  expect(onSubmit).toHaveBeenCalledWith({ email: 'jane@example.com' });
+});
 ```
 
 ### Test Patterns
@@ -385,4 +457,4 @@ describe('UserProfile', () => {
 });
 ```
 
-Wrap components in a test store wrapper when they use `useAppSelector` or dispatch.
+Wrap components in a test store wrapper when they use `useAppSelector` or dispatch. Do not test internal state or implementation details — test what the user sees and interacts with.

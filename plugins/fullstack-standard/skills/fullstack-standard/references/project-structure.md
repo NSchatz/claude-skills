@@ -192,19 +192,28 @@ Reference them in other packages/apps:
 ## Root Configuration Files
 
 ### `turbo.json`
+
+Turborepo 2.0+ uses the `tasks` key. If you see `pipeline` in an older repo, run `npx @turbo/codemod migrate` to update.
+
 ```json
 {
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "build/**"]
+      "outputs": ["dist/**", "build/**"],
+      "inputs": ["src/**", "package.json", "tsconfig.json"]
     },
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
     },
-    "lint": {},
-    "typecheck": {},
+    "lint": {
+      "outputs": []
+    },
+    "typecheck": {
+      "outputs": []
+    },
     "dev": {
       "cache": false,
       "persistent": true
@@ -219,12 +228,39 @@ Reference them in other packages/apps:
 }
 ```
 
+`dependsOn` patterns:
+- `["^build"]` — run `build` in all workspace dependencies first (most common)
+- `["build"]` — run `build` in the same package first
+- `[]` — no dependencies, run in parallel with everything
+
 ### `pnpm-workspace.yaml`
+
+Use the `catalog:` feature (pnpm 9.5+) to pin shared dependency versions in one place, eliminating version drift across packages.
+
 ```yaml
 packages:
   - 'apps/*'
   - 'packages/*'
+
+# Default catalog — reference with "catalog:" in package.json
+catalog:
+  react: ^19.0.0
+  react-dom: ^19.0.0
+  typescript: ^5.5.0
+  "@types/node": ^20.0.0
 ```
+
+In any `package.json`, reference catalog versions:
+```json
+{
+  "dependencies": {
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  }
+}
+```
+
+To bump a shared dependency, update `pnpm-workspace.yaml` once — all packages pick it up.
 
 ### Root `package.json`
 ```json

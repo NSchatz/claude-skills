@@ -303,14 +303,20 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
 
 ### Auth Controller
 
+The access token is returned as JSON. The refresh token is set as an **HttpOnly, Secure, SameSite=Strict cookie** — never as a JSON response body. This makes it immune to XSS (JavaScript cannot read it).
+
 ```ts
 // auth/auth.controller.ts
-import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Req, Res, UseGuards, UnauthorizedException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
+import { CurrentUser } from './decorators/current-user.decorator';
+import type { User } from '@myapp/shared';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -331,10 +337,30 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   @ApiOperation({ summary: 'Google OAuth callback' })
   async googleCallback(@Req() req: Request, @Res() res: Response) {
-    const tokens = await this.authService.generateTokens(req.user as any);
+    const tokens = await this.authService.generateTokens(req.user as User);
+    this.setRefreshTokenCookie(res, tokens.refreshToken);
+
     const frontendUrl = this.configService.getOrThrow('FRONTEND_URL');
-    // Pass tokens via query params or set HTTP-only cookie
+    // Pass only the short-lived access token in the URL; the refresh token is in the cookie
     res.redirect(`${frontendUrl}/auth/callback?token=${tokens.accessToken}`);
+  }
+
+  @Post('refresh')
+  @UseGuards(JwtRefreshGuard)   // Extracts refresh token from cookie
+  @ApiOperation({ summary: 'Rotate access and refresh tokens' })
+  async refresh(@Req() req: Request, @Res() res: Response) {
+    const tokens = await this.authService.rotateTokens(req.user as User);
+    this.setRefreshTokenCookie(res, tokens.refreshToken);
+    return res.json({ accessToken: tokens.accessToken });
+  }
+
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Invalidate refresh token and clear cookie' })
+  async logout(@Req() req: Request, @Res() res: Response, @CurrentUser() user: User) {
+    await this.authService.revokeRefreshToken(user.id);
+    res.clearCookie('refresh_token');
+    return res.json({ message: 'Logged out' });
   }
 
   @Get('me')
@@ -343,8 +369,47 @@ export class AuthController {
   getMe(@CurrentUser() user: User) {
     return user;
   }
+
+  private setRefreshTokenCookie(res: Response, token: string) {
+    res.cookie('refresh_token', token, {
+      httpOnly: true,
+      secure: this.configService.get('NODE_ENV') === 'production',
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000,  // 30 days in ms
+      path: '/api/auth',                  // Restrict cookie scope to auth endpoints
+    });
+  }
 }
 ```
+
+**Refresh token strategy** — extracts token from cookie, not the Authorization header:
+
+```ts
+// auth/strategies/jwt-refresh.strategy.ts
+@Injectable()
+export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly authService: AuthService,
+  ) {
+    super({
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        (req: Request) => req?.cookies?.['refresh_token'] ?? null,
+      ]),
+      secretOrKey: configService.getOrThrow('JWT_REFRESH_SECRET'),
+      passReqToCallback: true,
+    });
+  }
+
+  async validate(req: Request, payload: { sub: string }) {
+    const refreshToken = req.cookies['refresh_token'];
+    // Verify the stored token hash matches — detects reuse of revoked tokens
+    return this.authService.validateRefreshToken(payload.sub, refreshToken);
+  }
+}
+```
+
+**Token rotation**: Every `/auth/refresh` call issues a new access token + refresh token and invalidates the old refresh token (store a hash in the DB, not the token itself). If a revoked refresh token is used, treat it as a breach and revoke all sessions for that user.
 
 ### Adding More OAuth Providers
 

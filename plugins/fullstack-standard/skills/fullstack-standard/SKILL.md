@@ -9,19 +9,19 @@ This skill is the single source of truth for all side project applications. Ever
 
 ## Tech Stack
 
-| Layer            | Technology                                      |
-|------------------|-------------------------------------------------|
-| Monorepo         | Turborepo + pnpm workspaces                     |
-| Frontend         | React 18 + Vite + Redux Toolkit + Tailwind CSS  |
-| Backend          | NestJS (REST) + Prisma ORM + PostgreSQL         |
-| Auth             | Passport.js + Google OAuth 2.0 (extensible)     |
-| API Docs         | Swagger / OpenAPI (NestJS `@nestjs/swagger`)    |
-| Code Quality     | Biome (lint + format) + TypeScript strict mode  |
-| Unit / Int Tests | Jest + React Testing Library + Supertest        |
-| E2E Tests        | Playwright                                      |
-| CI/CD            | GitHub Actions                                  |
-| Containers       | Docker (multi-stage) + Docker Compose           |
-| Cloud            | AWS ECS or EKS + RDS (or self-hosted)           |
+| Layer            | Technology                                                        |
+|------------------|-------------------------------------------------------------------|
+| Monorepo         | Turborepo 2.x (`tasks` key) + pnpm workspaces with `catalog:`    |
+| Frontend         | React 19 + Vite + Redux Toolkit + Tailwind CSS v4                 |
+| Backend          | NestJS (REST) + Prisma ORM + PostgreSQL                           |
+| Auth             | Passport.js + Google OAuth 2.0 + JWT (access) + HttpOnly cookie (refresh) |
+| API Docs         | Swagger / OpenAPI (`@nestjs/swagger`)                             |
+| Code Quality     | Biome (lint + format) + TypeScript strict mode                    |
+| Unit / Int Tests | Vitest (frontend) + Jest (backend) + React Testing Library + Supertest |
+| E2E Tests        | Playwright                                                        |
+| CI/CD            | GitHub Actions                                                    |
+| Containers       | Docker multi-stage (distroless API, nginx web) + Docker Compose   |
+| Cloud            | AWS ECS or EKS + RDS (or self-hosted Docker Compose)              |
 
 ## Reference Files
 
@@ -78,4 +78,6 @@ These apply to every task, no exceptions:
 - All new modules include at minimum a unit test file
 - Biome passes with zero errors before any code is considered done
 - Environment variables are never hardcoded — always read from `ConfigModule` (backend) or Vite `import.meta.env` (frontend)
-- Dockerfiles are multi-stage; production images contain no dev dependencies
+- Dockerfiles are multi-stage; API production image uses distroless, web uses nginx:alpine
+- Never run `prisma migrate dev` in CI or production — always use `prisma migrate deploy`
+- Refresh tokens go in HttpOnly cookies only — never in a JSON response body

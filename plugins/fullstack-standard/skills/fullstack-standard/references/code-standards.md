@@ -87,6 +87,9 @@ Biome replaces ESLint + Prettier. All formatting and linting runs through a sing
 ```
 
 ### `packages/config/biome.base.json`
+
+Note: Biome defaults to `"indentStyle": "tab"`. We explicitly override to spaces here for consistency with the project convention.
+
 ```json
 {
   "$schema": "https://biomejs.dev/schemas/1.9.0/schema.json",
@@ -107,7 +110,7 @@ Biome replaces ESLint + Prettier. All formatting and linting runs through a sing
       },
       "suspicious": {
         "noExplicitAny": "error",
-        "noConsoleLog": "warn"
+        "noConsole": "warn"
       },
       "style": {
         "useConst": "error",
@@ -126,6 +129,16 @@ Biome replaces ESLint + Prettier. All formatting and linting runs through a sing
 }
 ```
 
+### Biome Limitations
+
+Biome does **not** support type-aware linting rules or framework-specific plugins. For these, supplement with a minimal ESLint config:
+
+- `eslint-plugin-react-hooks` — enforces Rules of Hooks (`react-hooks/rules-of-hooks`, `react-hooks/exhaustive-deps`)
+- `eslint-plugin-jsx-a11y` — accessibility checks
+- `@typescript-eslint` type-aware rules (e.g., `no-floating-promises`) — only if needed
+
+Keep ESLint config minimal and non-overlapping with Biome. If a rule is covered by Biome, disable it in ESLint.
+
 ### Usage
 
 ```bash
@@ -135,8 +148,9 @@ biome check .
 # Fix and format (dev)
 biome check --write .
 
-# Check a specific file
-biome check src/app/store.ts
+# Migrate from ESLint/Prettier (one-time)
+npx @biomejs/biome migrate eslint --write
+npx @biomejs/biome migrate prettier --write
 ```
 
 Biome must pass with zero errors before any code is merged.
