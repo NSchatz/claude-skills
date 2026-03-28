@@ -29,6 +29,8 @@ Load these as needed — not all at once:
 | `references/hypridle.md` | hypridle configuration |
 | `references/hyprpaper.md` | hyprpaper configuration |
 | `references/xwayland.md` | XWayland, HiDPI setup |
+| `references/ricing.md` | Decoration/blur/shadow details, animation presets, smart gaps, special workspaces, hyprlock widgets, swaync/rofi ricing, plugins, common mistakes |
+| `references/theming.md` | GTK/Qt theming, icon themes, cursor consistency, fontconfig, pywal/wallust, ags/hyprpanel |
 
 ---
 
@@ -55,7 +57,7 @@ Read `references/packages.md` now. Work through these groups, batching related q
 #### Group B — Core tools *(ask all at once)*
 - **Terminal:** kitty / alacritty / foot / wezterm / ghostty / other?
 - **App launcher:** wofi / rofi / fuzzel / tofi / other?
-- **Status bar:** waybar / other / none?
+- **Status bar:** waybar / ags / hyprpanel / other / none?
 - **Notification daemon:** dunst / mako / swaync / other?
 
 #### Group C — Hypr ecosystem *(ask all at once)*
@@ -70,6 +72,7 @@ Read `references/packages.md` now. Work through these groups, batching related q
 - **Bluetooth GUI?** blueman / none?
 - **Display manager?** SDDM / greetd+tuigreet / none (TTY launch)?
 - **Color temperature?** hyprsunset / gammastep / none?
+- **Workspace overview plugin?** hyprexpo (macOS Exposé grid) / none?
 - **Starting via uwsm?** (changes where env vars go — see env.conf section)
 
 #### Group E — Look and feel *(ask all at once)*
@@ -88,6 +91,8 @@ Read `references/packages.md` now. Work through these groups, batching related q
 - **Shadows:** yes / no?
 - **Window opacity:** fully opaque, or transparent inactive windows? *e.g. active 1.0, inactive 0.85*
 - **Animation style:** minimal / balanced / fancy?
+- **Smart gaps?** (no gaps when only one window on workspace — very popular in rices) yes/no?
+- **Special workspaces?** (toggle-able scratchpad overlays) yes/no? How many, and what for (terminal, notes, etc.)?
 
 ---
 
@@ -156,19 +161,16 @@ env = XDG_CURRENT_DESKTOP,Hyprland
 
 #### Visual style — translating Group F answers
 
-**Blur** (`decoration:blur {}`):
-- Subtle: `size = 4; passes = 2; noise = 0.02`
-- Moderate: `size = 8; passes = 3; noise = 0.02`
-- Heavy: `size = 12; passes = 4; noise = 0.01`
+Load `references/ricing.md` now — it has complete values for decoration, animations, smart gaps, special workspaces, opacity rules, and layer rules.
 
-**Shadow** (`decoration:shadow {}`): `enabled = true; range = 20; render_power = 3` + theme accent color.
-
-**Opacity**: `active_opacity` and `inactive_opacity` in `decoration {}`. Note these are multipliers — `0.9 × 0.9 = 0.81`. Use `override` in windowrules for exact values.
-
-**Animation style presets:**
-- Minimal: `animation = global, 1, 3, default`
-- Balanced: `bezier = ease, 0.05, 0.9, 0.1, 1.05` + `animation = global, 1, 5, ease`
-- Fancy: per-type animations (`popin` for windows, `slide` for workspaces) with overshoot bezier curves
+Key summaries:
+- **Blur**: match `size` and `passes` — subtle: 4/2, moderate: 8/3, heavy: 12/4. Set on `decoration:blur {}`.
+- **Shadow**: `decoration:shadow { enabled = true; range = 20; render_power = 3; color = rgba(1a1a1abb) }`.
+- **Gradient border**: `col.active_border = rgba(colorAff) rgba(colorBff) 45deg` — highest-impact single setting.
+- **Opacity**: `active_opacity`/`inactive_opacity` in `decoration {}` are multipliers. Use `override` in windowrules for exact values.
+- **Animation style**: see presets in `references/ricing.md` — minimal/balanced/fancy with bezier presets.
+- **Smart gaps**: uses `workspace = w[tv1], gapsout:0, gapsin:0` — see `references/ricing.md`.
+- **Special workspaces**: `togglespecialworkspace` + `movetoworkspacesilent` + `dim_special` — see `references/ricing.md`.
 
 ---
 
@@ -179,24 +181,39 @@ Generate configs that use the **same color palette throughout** — if Catppucci
 #### waybar
 Generate `config.jsonc` + `style.css`. Include `hyprland/workspaces` (not `sway/workspaces`), `hyprland/window`, clock, tray, audio, network. In CSS: use `#workspaces button.active` (not `.focused`).
 
-#### dunst / mako
+#### dunst / mako / swaync
 - **dunst**: `dunstrc` with `[global]`, `[urgency_low/normal/critical]`. Match `corner_radius` to hyprland `rounding`.
 - **mako**: `~/.config/mako/config` in plain `key=value` format.
+- **swaync**: `~/.config/swaync/config.json` (behavior) + `~/.config/swaync/style.css` (full CSS). Load `references/ricing.md` for the themed CSS template. Add `layerrule = blur on, match:namespace swaync-control-center` for frosted glass.
 
-#### wofi
-`config` (size, mode, location) + `style.css` (themed to match).
+#### wofi / rofi / fuzzel
+- **wofi**: `~/.config/wofi/config` + `~/.config/wofi/style.css`. Load `references/ricing.md` for CSS template.
+- **rofi** (requires `rofi-wayland`): `~/.config/rofi/themes/NAME.rasi`. Load `references/ricing.md` for the `.rasi` skeleton.
+- **fuzzel**: `~/.config/fuzzel/fuzzel.ini` — native Wayland blur without layerrules needed.
 
 #### kitty
 `kitty.conf` with font, font size, opacity, all 16 terminal colors, cursor style.
 
 #### hyprlock
-Load `references/hyprlock.md`. Generate with `background {}` (blur or solid), `input-field {}`, and `label {}` blocks for clock/date. Match theme colors. **A config is required — without one, hyprlock locks but renders nothing.**
+Load `references/hyprlock.md` and `references/ricing.md`. Generate with `background {}` (blurred screenshot is most popular), `input-field {}` (full color states: outer, inner, check, fail, capslock), and `label {}` blocks for clock/date. Optionally add `image {}` for profile picture and `shape {}` for decorative elements. Match all colors to the theme. Add `animations {}` block. **A config is required — without one, hyprlock locks but renders nothing.**
 
 #### hypridle
 Load `references/hypridle.md`. Generate with `general {}` block (`lock_cmd = loginctl lock-session`, `before_sleep_cmd`) and listeners: dim at ~2.5 min, lock at ~5 min, screen off at ~5.5 min, suspend at ~30 min (optional).
 
 #### hyprpaper
 Load `references/hyprpaper.md`. Use `wallpaper {}` block syntax with `fit_mode = cover`. Add a fallback block with empty monitor. For rotating wallpapers: set `path` to a directory, add `timeout = 300` and `order = random`.
+
+#### GTK / Qt / icon / cursor theming
+Load `references/theming.md`. For a complete rice, generate:
+- `~/.config/gtk-3.0/settings.ini` and `~/.config/gtk-4.0/settings.ini` (theme, icons, cursor, font)
+- env vars: `GTK_THEME`, `XCURSOR_THEME`, `XCURSOR_SIZE`, `QT_QPA_PLATFORMTHEME` (qt5ct), `HYPRCURSOR_THEME`
+- `~/.icons/default/index.theme` (XWayland cursor fallback)
+- Tell the user to run `nwg-look` after install to apply GTK settings, and `qt5ct` for Qt apps
+- For Qt ricing beyond colors: mention Kvantum (`QT_STYLE_OVERRIDE=kvantum`)
+- For font rendering: optionally generate `~/.config/fontconfig/fonts.conf`
+
+#### ags / hyprpanel
+If user chose ags or hyprpanel instead of waybar, load `references/theming.md` for notes. Note that ags requires TypeScript/JS knowledge; hyprpanel is preconfigured with a JSON palette. Provide install instructions but note that full ags config generation is beyond this skill's scope — suggest the user start from an existing ags config and customize it.
 
 ---
 
@@ -218,6 +235,10 @@ Detect package manager, install all chosen packages, copy configs to `~/.config/
 - **Modifier syntax**: `SUPER`, `SUPER_SHIFT`, `CTRL_ALT` (underscores, no commas)
 - **No `autogenerated = 1`** — delete it; it causes the file to be regenerated on update
 - **waybar**: `hyprland/workspaces` not `sway/workspaces`; `button.active` not `button.focused`
+- **Gradient borders**: `col.active_border = rgba(Aff) rgba(Bff) 45deg` — no spaces around values
+- **`borderangle` style**: use `once`, never `loop` — loop renders at full refresh rate constantly
+- **`layerrule = blur on`** required for bars/launchers — `decoration:blur` only affects windows
+- **xdg-desktop-portal**: only `xdg-desktop-portal-hyprland` + `xdg-desktop-portal-gtk`; remove `-kde`
 
 ---
 
@@ -264,15 +285,41 @@ Named rules can be toggled at runtime without a reload: `hyprctl keyword 'window
 
 When writing rules for unfamiliar apps, run `hyprctl clients` first to see the actual `class` and `initialClass`.
 
+### Smart gaps (no gaps when solo window)
+
+```ini
+workspace = w[tv1], gapsout:0, gapsin:0
+workspace = f[1], gapsout:0, gapsin:0
+windowrule = border_size 0, match:float 0, match:workspace w[tv1]
+windowrule = rounding 0, match:float 0, match:workspace w[tv1]
+```
+
+### Special workspaces (scratchpads)
+
+```ini
+bind = SUPER, S, togglespecialworkspace, scratchpad
+bind = SUPER_SHIFT, S, movetoworkspacesilent, special:scratchpad
+# Auto-launch on startup
+exec-once = [workspace special:terminal silent] kitty
+```
+
+Animate with `animation = specialWorkspace, 1, 6, myBezier, slidevert` and dim the background via `decoration { dim_special = 0.3 }`.
+
 ### Layer rules (blur bars and launchers)
 
 Waybar, wofi, and notification daemons are Wayland *layers*, not windows — blur them with `layerrule`:
 
 ```ini
 layerrule = blur on, match:namespace waybar
-layerrule = blur on, match:namespace wofi
 layerrule = ignorezero on, match:namespace waybar
+layerrule = blur on, match:namespace wofi
+layerrule = blur on, match:namespace rofi
+layerrule = ignorezero on, match:namespace rofi
+layerrule = blur on, match:namespace swaync-control-center
+layerrule = ignorezero on, match:namespace swaync-control-center
 ```
+
+Find a layer's namespace: `hyprctl layers`
 
 ### Window swallowing
 
