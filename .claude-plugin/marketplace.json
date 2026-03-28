@@ -9,6 +9,11 @@
       "name": "template",
       "description": "A reference template for creating new skills",
       "source": "./plugins/template"
+    },
+    {
+      "name": "hyprland-config",
+      "description": "Hyprland Wayland compositor configuration — full setup, companion apps, keybinds, window rules, and more",
+      "source": "./plugins/hyprland-config"
     }
   ]
 }
