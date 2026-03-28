@@ -14,6 +14,11 @@
       "name": "hyprland-config",
       "description": "Hyprland Wayland compositor configuration — full setup, companion apps, keybinds, window rules, and more",
       "source": "./plugins/hyprland-config"
+    },
+    {
+      "name": "fullstack-standard",
+      "description": "Source of truth for all side project full-stack applications: Turborepo + pnpm, React + Redux Toolkit + Tailwind, NestJS + Prisma + PostgreSQL, Docker, GitHub Actions, AWS.",
+      "source": "./plugins/fullstack-standard"
     }
   ]
 }

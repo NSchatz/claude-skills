@@ -1,0 +1,8 @@
+{
+  "name": "fullstack-standard",
+  "version": "1.0.0",
+  "description": "Source of truth for all side project full-stack applications: Turborepo + pnpm, React + Redux Toolkit + Tailwind, NestJS + Prisma + PostgreSQL, Docker, GitHub Actions, AWS.",
+  "author": {
+    "name": "nschatz"
+  }
+}
