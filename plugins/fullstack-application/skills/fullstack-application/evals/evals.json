@@ -1,0 +1,104 @@
+{
+  "skill_name": "fullstack-application",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I want to start a new side project called TaskFlow — it's a task management app where teams can create boards, add tasks with due dates, and assign them to team members. I want Google OAuth, basic roles (admin and member), and I'd like to deploy it to AWS ECS. Use RDS for the database and yes I want Redis for caching. No file uploads needed right now. Email for inviting team members would be great. Let's scaffold the whole thing.",
+      "expected_output": "Full project scaffold following the standard: Turborepo monorepo, NestJS API with auth module, React frontend with RTK, Prisma schema with Board/Task/User models, Docker Compose with Postgres and Redis, GitHub Actions CI, infrastructure for ECS deployment, email queue setup with BullMQ",
+      "assertions": [
+        "turbo.json",
+        "pnpm-workspace.yaml",
+        "apps/api",
+        "apps/web",
+        "packages/database",
+        "packages/shared",
+        "packages/config",
+        "schema.prisma",
+        "docker-compose",
+        "Dockerfile",
+        "ci.yml",
+        "AuthModule",
+        "Swagger",
+        "ReduxToolkit",
+        "Tailwind",
+        "BullMQ",
+        "helmet",
+        "ValidationPipe",
+        "Board",
+        "Task"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I have an existing project using the fullstack standard. I need to add a comments feature — users should be able to comment on tasks. Comments should be paginated (cursor-based since there could be many), and the task owner should get a real-time notification when someone comments. I also want email notifications for mentions. Here are my answers: the feature extends the existing Task module, all authenticated users can comment, I need a Comment model with body text and timestamps related to Task and User, endpoints for CRUD on comments plus a list endpoint with cursor pagination, two new pages (comment thread inline on the task detail page), yes use WebSockets for real-time, and write E2E tests.",
+      "expected_output": "Comment module with NestJS controller/service, cursor-based pagination, WebSocket notification on new comment, email notification via BullMQ for mentions, Prisma model with indexes, RTK Query endpoints with streaming updates, Playwright E2E test",
+      "assertions": [
+        "Comment",
+        "cursor",
+        "WebSocket",
+        "notification",
+        "email",
+        "BullMQ",
+        "@@index",
+        "createMany",
+        "injectEndpoints",
+        "Playwright",
+        "class-validator",
+        "ApiTags",
+        "spec"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I need to add file upload support to my fullstack standard project. Users should be able to attach files (images and PDFs, max 10MB) to tasks. Images should be resized to thumbnails. I want presigned URLs for the upload flow since some files could be large. Use S3 for storage. Also add a profile avatar upload endpoint that uses server-side upload (not presigned) since avatars are small.",
+      "expected_output": "S3 service with both presigned URL and direct upload methods, Multer config with file type validation, Sharp-based image processing via BullMQ, upload controller with two endpoints, frontend upload component with progress tracking",
+      "assertions": [
+        "S3",
+        "presigned",
+        "Multer",
+        "Sharp",
+        "BullMQ",
+        "media-processing",
+        "FileInterceptor",
+        "MaxFileSizeValidator",
+        "FileTypeValidator",
+        "webp",
+        "thumbnail"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Set up the observability stack for my fullstack standard project. I want structured logging with Pino, Sentry for error tracking on both frontend and backend, comprehensive health checks that probe Postgres and Redis, and Prometheus metrics for HTTP request duration. Also set up correlation IDs so I can trace requests end-to-end.",
+      "expected_output": "Pino logger module with redaction, Sentry init for NestJS and React with source map upload, health controller with liveness and readiness endpoints, Prometheus metrics module, correlation ID middleware",
+      "assertions": [
+        "pino",
+        "Sentry",
+        "redact",
+        "HealthCheck",
+        "readiness",
+        "liveness",
+        "Prometheus",
+        "correlation",
+        "x-request-id",
+        "source map",
+        "filesToDeleteAfterUpload"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "I need to add a settings page with a complex multi-step form: step 1 is profile info (name, bio), step 2 is notification preferences (email on/off, push on/off, digest frequency), step 3 is security (change password with confirmation field). Each step should validate independently, and the whole form should be accessible. Use React Hook Form with Zod. The form should also handle server-side validation errors gracefully.",
+      "expected_output": "Multi-step form with React Hook Form + FormProvider, Zod schemas per step, proper ARIA attributes, server error mapping with setError, accessible FormField component",
+      "assertions": [
+        "useForm",
+        "zodResolver",
+        "FormProvider",
+        "trigger",
+        "aria-invalid",
+        "aria-describedby",
+        "setError",
+        "step",
+        "z.object"
+      ]
+    }
+  ]
+}
