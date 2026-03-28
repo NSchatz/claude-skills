@@ -52,6 +52,12 @@ The `description` field is what determines auto-invocation — be precise about 
 
 `evals/evals.json` test cases contain a prompt and a list of assertions (string checks against generated output). Use evals to validate that a skill produces correct, expected output — especially for code generation skills.
 
+## Known Pitfalls
+
+### Hyprland Config: Variable Declaration Order
+
+In generated Hyprland configs, variables (`$terminal`, `$fileManager`, `$menu`, etc.) **must be defined before** any `source =` lines that reference them. Hyprland processes configs top-to-bottom, so a `source`d file that uses `$terminal` will resolve to an empty string if the variable is declared later in the parent file.
+
 ## Adding a New Skill
 
 1. Copy `plugins/template/` as a starting point

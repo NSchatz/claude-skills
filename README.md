@@ -4,8 +4,10 @@ A personal Claude Code skills plugin marketplace — a collection of reusable sk
 
 ## Skills
 
-### `hyprland-config` (v3.0.0)
+### `hyprland-config` (v3.1.0)
 Full Hyprland Wayland compositor setup. Generates a complete environment from scratch: `hyprland.conf`, monitors, keybinds, window rules, animations, workspace rules, and companion app configs (waybar, wofi, kitty, dunst, hyprlock, hypridle, hyprpaper). Also produces an `install.sh` for the appropriate package manager.
+
+Includes a guided interview covering system basics, core tools, visual style, and **keybind preferences** — supports i3/sway-like, vim-centric, and Windows/GNOME-familiar keybind styles with customizable submaps (resize, power/session, launch), directional navigation (hjkl/arrows/both), and `bindd` descriptions for discoverability.
 
 Auto-triggers on any Hyprland-related topic — config files, ricing, tiling, keybinds, etc.
 

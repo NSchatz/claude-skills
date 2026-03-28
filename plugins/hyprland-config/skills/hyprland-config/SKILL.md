@@ -94,6 +94,23 @@ Read `references/packages.md` now. Work through these groups, batching related q
 - **Smart gaps?** (no gaps when only one window on workspace — very popular in rices) yes/no?
 - **Special workspaces?** (toggle-able scratchpad overlays) yes/no? How many, and what for (terminal, notes, etc.)?
 
+#### Group G — Keybind preferences *(ask all at once; user can say "defaults" or "i3-like")*
+- **Keybind style?** i3/sway-like (most common) / vim-centric (hjkl everything) / Windows/GNOME-familiar / custom?
+  - *i3-like*: SUPER+Return=terminal, SUPER+D=launcher, SUPER+SHIFT+Q=kill, SUPER+1-0=workspaces — the community standard
+  - *vim-centric*: hjkl for all directional actions, minimal arrow key use, resize/launch submaps
+  - *Windows/GNOME-familiar*: SUPER+E=files, ALT+F4=close, ALT+Tab=cycle, SUPER alone opens launcher
+- **Primary modifier?** SUPER (recommended — avoids app conflicts) / ALT / other? *Default: `$mainMod = SUPER`*
+- **Directional navigation?** arrow keys / hjkl / both? *Default: both — costs nothing and accommodates muscle memory from either background*
+- **Window close bind?** SUPER+Q / SUPER+C / SUPER+SHIFT+Q / SUPER+SHIFT+C? *i3 tradition: SUPER+SHIFT+Q; Hyprland default example: SUPER+C*
+- **Terminal launch bind?** SUPER+Return (i3/sway tradition, most popular) / SUPER+T (GNOME-like) / SUPER+Q (Hyprland example default)?
+- **Resize mode?** submap (enter resize mode with SUPER+R, use arrows/hjkl, Escape to exit) / hold modifier (SUPER+CTRL+arrows) / mouse only (SUPER+RMB drag)? *Default: submap + mouse drag — submap is the most popular community pattern*
+- **Include submaps?** Which ones? resize (most common) / launch (single-key app shortcuts) / power/session (l=lock, e=logout, s=suspend, r=reboot, p=poweroff) / screenshot (f=fullscreen, s=select, w=window)? *Default: resize only*
+- **Number of workspaces?** 10 (SUPER+1 through SUPER+0, most common) / fewer / more? *Beyond 10 requires F-keys or other binds*
+- **Extra workspace navigation?** mouse scroll through workspaces (SUPER+scroll) / next-prev keys (SUPER+Tab) / both? *Default: both*
+- **Bind descriptions?** Use `bindd` flag so keybinds are queryable with `hyprctl binds` and cheatsheet tools? yes/no? *Default: yes — negligible cost, useful for discoverability*
+
+> **Shorthand answers**: If the user says "i3-like", use: SUPER mod, both arrows+hjkl, SUPER+SHIFT+Q to kill, SUPER+Return for terminal, resize submap, 10 workspaces with mouse scroll, bind descriptions on. If they say "defaults" or don't have a preference, use the same i3-like defaults — it's what most Hyprland users expect.
+
 ---
 
 ### Step 3: Generate the full config set
@@ -171,6 +188,116 @@ Key summaries:
 - **Animation style**: see presets in `references/ricing.md` — minimal/balanced/fancy with bezier presets.
 - **Smart gaps**: uses `workspace = w[tv1], gapsout:0, gapsin:0` — see `references/ricing.md`.
 - **Special workspaces**: `togglespecialworkspace` + `movetoworkspacesilent` + `dim_special` — see `references/ricing.md`.
+
+#### Keybinds — translating Group G answers
+
+Load `references/keybinds.md` and `references/dispatchers.md` now. Generate `keybinds.conf` tailored to the user's chosen style. Always define `$mainMod` as a variable at the top so users can change their modifier in one place.
+
+**Core structure** — every keybinds.conf needs these sections:
+
+1. **Modifier variable**: `$mainMod = SUPER` (or user's choice)
+2. **App launches**: terminal, launcher, file manager, browser — use the apps chosen in Group B/D
+3. **Window management**: kill, float toggle, fullscreen, pseudo-tile, split toggle
+4. **Focus navigation**: directional focus (arrows and/or hjkl based on Group G answer)
+5. **Window movement**: move windows directionally (SHIFT layer of focus binds)
+6. **Workspace switching**: `$mainMod + 1-0` for workspaces 1-10
+7. **Window-to-workspace**: `$mainMod + SHIFT + 1-0`
+8. **Mouse binds**: `$mainMod + LMB` = move, `$mainMod + RMB` = resize
+9. **Media/brightness keys**: always include with `el` flags (repeat + locked)
+10. **Screenshots**: based on chosen tool (grimblast/hyprshot/grim+slurp)
+11. **Utility binds**: lock screen, clipboard history, color temperature toggle
+12. **Submaps**: based on user's Group G submap choices
+
+**Style presets** — map the user's keybind style answer to concrete binds:
+
+*i3/sway-like (default):*
+```ini
+$mainMod = SUPER
+bindd = $mainMod, Return, Launch terminal, exec, $terminal
+bindd = $mainMod, D, Open app launcher, exec, $menu
+bindd = $mainMod_SHIFT, Q, Close active window, killactive
+bindd = $mainMod_SHIFT, E, Exit Hyprland, exit
+bindd = $mainMod, V, Toggle floating, togglefloating
+bindd = $mainMod, F, Toggle fullscreen, fullscreen, 0
+bindd = $mainMod, P, Pseudo-tile, pseudo
+# Focus: both arrows + hjkl
+bindd = $mainMod, H, Focus left, movefocus, l
+bindd = $mainMod, L, Focus right, movefocus, r
+bindd = $mainMod, K, Focus up, movefocus, u
+bindd = $mainMod, J, Focus down, movefocus, d
+bindd = $mainMod, left, Focus left, movefocus, l
+bindd = $mainMod, right, Focus right, movefocus, r
+bindd = $mainMod, up, Focus up, movefocus, u
+bindd = $mainMod, down, Focus down, movefocus, d
+# Move: SHIFT layer
+bindd = $mainMod_SHIFT, H, Move window left, movewindow, l
+bindd = $mainMod_SHIFT, L, Move window right, movewindow, r
+bindd = $mainMod_SHIFT, K, Move window up, movewindow, u
+bindd = $mainMod_SHIFT, J, Move window down, movewindow, d
+```
+
+*vim-centric:* Same as i3-like but omit arrow key duplicates, add more submaps (resize, launch), and use hjkl exclusively.
+
+*Windows/GNOME-familiar:*
+```ini
+$mainMod = SUPER
+bindd = $mainMod, T, Launch terminal, exec, $terminal
+bindd = $mainMod, E, Open file manager, exec, $fileManager
+bindd = ALT, F4, Close active window, killactive
+bindd = $mainMod, Tab, Cycle windows, cyclenext
+# SUPER alone to open launcher (release bind):
+bindr = SUPER, SUPER_L, exec, $menu
+```
+
+**Submaps** — generate based on user's choices:
+
+*Resize submap (most popular):*
+```ini
+bindd = $mainMod, R, Enter resize mode, submap, resize
+submap = resize
+binded = , right, Grow right, resizeactive, 30 0
+binded = , left, Shrink right, resizeactive, -30 0
+binded = , up, Shrink down, resizeactive, 0 -30
+binded = , down, Grow down, resizeactive, 0 30
+binded = , L, Grow right, resizeactive, 30 0
+binded = , H, Shrink right, resizeactive, -30 0
+binded = , K, Shrink down, resizeactive, 0 -30
+binded = , J, Grow down, resizeactive, 0 30
+bindd = , escape, Exit resize mode, submap, reset
+bindd = , Return, Exit resize mode, submap, reset
+submap = reset
+```
+
+*Power/session submap:*
+```ini
+bindd = $mainMod, Escape, Enter power menu, submap, power
+submap = power
+bindd = , L, Lock screen, exec, loginctl lock-session
+bind = , L, submap, reset
+bindd = , E, Logout, exit
+bindd = , S, Suspend, exec, systemctl suspend
+bind = , S, submap, reset
+bindd = , R, Reboot, exec, systemctl reboot
+bindd = , P, Power off, exec, systemctl poweroff
+bindd = , escape, Cancel, submap, reset
+submap = reset
+```
+
+*Launch submap (single-key app shortcuts):*
+```ini
+bindd = $mainMod, Space, Enter launch mode, submap, launch
+submap = launch
+bindd = , F, Launch browser, exec, firefox
+bind = , F, submap, reset
+bindd = , T, Launch terminal, exec, $terminal
+bind = , T, submap, reset
+bindd = , E, Launch file manager, exec, $fileManager
+bind = , E, submap, reset
+bindd = , escape, Cancel, submap, reset
+submap = reset
+```
+
+**Use `bindd` (description flag) by default** — it makes keybinds queryable with `hyprctl binds` and enables cheatsheet tools. The only cost is a slightly longer line; the discoverability benefit is significant.
 
 ---
 
@@ -268,32 +395,42 @@ Generate a robust install script with comprehensive error handling. Tailor the p
 
 ## Common Patterns
 
-### Keybinds
+### Utility keybinds (always include regardless of style)
+
+These complement the style-specific binds generated from Group G. Always include them in `keybinds.conf`:
 
 ```ini
 # Lock screen — always use loginctl, not hyprlock directly (lets hypridle hooks fire)
-bind = SUPER, L, exec, loginctl lock-session
+bindd = $mainMod, L, Lock screen, exec, loginctl lock-session
 
-# Clipboard history
-bind = SUPER, V, exec, cliphist list | wofi --dmenu | cliphist decode | wl-copy
+# Clipboard history (if using cliphist — substitute rofi/fuzzel for wofi as needed)
+bindd = $mainMod, V, Clipboard history, exec, cliphist list | wofi --dmenu | cliphist decode | wl-copy
 
-# Screenshots
-bind = , Print, exec, grim ~/Pictures/screenshot-$(date +%Y%m%d-%H%M%S).png
-bind = SHIFT, Print, exec, grim -g "$(slurp)" ~/Pictures/screenshot-$(date +%Y%m%d-%H%M%S).png
-bind = CTRL, Print, exec, grim -g "$(slurp)" - | wl-copy
+# Screenshots (grim+slurp — substitute grimblast/hyprshot based on Group D choice)
+bindd = , Print, Screenshot full screen, exec, grim ~/Pictures/screenshot-$(date +%Y%m%d-%H%M%S).png
+bindd = SHIFT, Print, Screenshot region, exec, grim -g "$(slurp)" ~/Pictures/screenshot-$(date +%Y%m%d-%H%M%S).png
+bindd = CTRL, Print, Screenshot region to clipboard, exec, grim -g "$(slurp)" - | wl-copy
 
-# Brightness & media (bindel = repeat on hold)
-bindel = , XF86MonBrightnessUp,   exec, brightnessctl set 5%+
-bindel = , XF86MonBrightnessDown, exec, brightnessctl set 5%-
-bindel = , XF86AudioRaiseVolume,  exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+
-bindel = , XF86AudioLowerVolume,  exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
-bindl  = , XF86AudioMute,         exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
-bindl  = , XF86AudioPlay,         exec, playerctl play-pause
-bindl  = , XF86AudioPrev,         exec, playerctl previous
-bindl  = , XF86AudioNext,         exec, playerctl next
+# Brightness & media (el = repeat on hold + works on lockscreen)
+bindeld = , XF86MonBrightnessUp,   Brightness up, exec, brightnessctl set 5%+
+bindeld = , XF86MonBrightnessDown, Brightness down, exec, brightnessctl set 5%-
+bindeld = , XF86AudioRaiseVolume,  Volume up, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+
+bindeld = , XF86AudioLowerVolume,  Volume down, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
+bindld  = , XF86AudioMute,         Toggle mute, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+bindld  = , XF86AudioPlay,         Play/pause, exec, playerctl play-pause
+bindld  = , XF86AudioPrev,         Previous track, exec, playerctl previous
+bindld  = , XF86AudioNext,         Next track, exec, playerctl next
 
 # Color temperature toggle (if using hyprsunset)
-bind = SUPER, F9, exec, pkill hyprsunset || hyprsunset -t 4500
+bindd = $mainMod, F9, Toggle night light, exec, pkill hyprsunset || hyprsunset -t 4500
+
+# Mouse binds — move and resize floating windows
+bindmd = $mainMod, mouse:272, Move window, movewindow
+bindmd = $mainMod, mouse:273, Resize window, resizewindow
+
+# Workspace scroll
+bindd = $mainMod, mouse_down, Next workspace, workspace, e+1
+bindd = $mainMod, mouse_up, Previous workspace, workspace, e-1
 ```
 
 ### Window rules
