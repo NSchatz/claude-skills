@@ -1,0 +1,43 @@
+{
+  "eval_id": 4,
+  "eval_name": "polished-pill-bar",
+  "prompt": "I want a full Hyprland setup with Catppuccin Mocha, and I really want the bar to look polished — like the floating pill style I see in r/unixporn posts. Single 2560x1440 144Hz monitor, kitty, wofi, dunst, JetBrainsMono Nerd Font. hyprpaper for wallpaper, hyprlock, hypridle. US keyboard, no touchpad.",
+  "assertions": [
+    {
+      "id": "waybar-floating-pill",
+      "text": "waybar style.css sets window#waybar background to transparent (not a solid color)"
+    },
+    {
+      "id": "waybar-rounded-containers",
+      "text": "waybar style.css uses border-radius on module containers (modules-left/center/right or individual modules)"
+    },
+    {
+      "id": "waybar-define-color",
+      "text": "waybar style.css uses @define-color to define a color palette (at least 5 named colors)"
+    },
+    {
+      "id": "waybar-nerd-font-icons",
+      "text": "waybar config.jsonc uses Nerd Font icons (unicode glyphs) in module formats, not plain text labels"
+    },
+    {
+      "id": "waybar-margin-floating",
+      "text": "waybar config.jsonc includes margin-top or margin properties to create the floating effect"
+    },
+    {
+      "id": "waybar-hyprland-workspaces",
+      "text": "waybar config uses hyprland/workspaces (not sway/workspaces)"
+    },
+    {
+      "id": "waybar-active-not-focused",
+      "text": "waybar style.css uses button.active for workspace styling (not button.focused)"
+    },
+    {
+      "id": "waybar-state-styling",
+      "text": "waybar style.css includes state-based styling for at least 2 of: battery.warning, battery.critical, network.disconnected, pulseaudio.muted"
+    },
+    {
+      "id": "waybar-module-count",
+      "text": "waybar config includes at least 6 modules (workspaces, window, clock, pulseaudio/wireplumber, network, tray)"
+    }
+  ]
+}

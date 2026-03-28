@@ -1,0 +1,93 @@
+{
+  "expectations": [
+    {
+      "text": "waybar style.css sets window#waybar background to transparent (not a solid color)",
+      "passed": true,
+      "evidence": "style.css contains: window#waybar { background: transparent; }"
+    },
+    {
+      "text": "waybar style.css uses border-radius on module containers (modules-left/center/right or individual modules)",
+      "passed": true,
+      "evidence": "style.css uses border-radius extensively: window#waybar > box has border-radius: 20px, #workspaces has border-radius: 14px, #clock has border-radius: 14px, and all right-side modules (#tray, #pulseaudio, #network, #cpu, #memory, #battery) have border-radius: 14px"
+    },
+    {
+      "text": "waybar style.css uses @define-color to define a color palette (at least 5 named colors)",
+      "passed": false,
+      "evidence": "The style.css does NOT use @define-color at all. Colors are defined as inline hex values (e.g., #1e1e2e, #cba6f7, #cdd6f4). The Catppuccin Mocha palette is listed only in CSS comments, not as @define-color declarations."
+    },
+    {
+      "text": "waybar config.jsonc uses Nerd Font icons (unicode glyphs) in module formats, not plain text labels",
+      "passed": true,
+      "evidence": "config.jsonc uses Nerd Font unicode glyphs throughout: clock format uses '\uf64f' (nf-md-clock), cpu uses '\uf4bc' (nf-md-cpu), memory uses '\uf035b' (nf-md-memory), network-wifi uses '\uf1eb' (nf-fa-wifi), pulseaudio uses volume icons ['', '', ''], battery uses ['', '', '', '', ''], and custom/power uses '\u23fb' (power symbol)"
+    },
+    {
+      "text": "waybar config.jsonc includes margin-top or margin properties to create the floating effect",
+      "passed": true,
+      "evidence": "config.jsonc contains: \"margin-top\": 8, \"margin-left\": 10, \"margin-right\": 10"
+    },
+    {
+      "text": "waybar config uses hyprland/workspaces (not sway/workspaces)",
+      "passed": true,
+      "evidence": "config.jsonc modules-left contains \"hyprland/workspaces\" and the workspaces config block is keyed as \"hyprland/workspaces\""
+    },
+    {
+      "text": "waybar style.css uses button.active for workspace styling (not button.focused)",
+      "passed": true,
+      "evidence": "style.css contains: #workspaces button.active { color: #1e1e2e; background: linear-gradient(135deg, #cba6f7, #89b4fa); ... }. No button.focused selector is present."
+    },
+    {
+      "text": "waybar style.css includes state-based styling for at least 2 of: battery.warning, battery.critical, network.disconnected, pulseaudio.muted",
+      "passed": true,
+      "evidence": "All four states are styled: #battery.warning (color: #fab387), #battery.critical (color: #f38ba8 with blink animation), #network.disconnected (color: #f38ba8), #pulseaudio.muted (color: #6c7086)"
+    },
+    {
+      "text": "waybar config includes at least 6 modules (workspaces, window, clock, pulseaudio/wireplumber, network, tray)",
+      "passed": true,
+      "evidence": "Config includes 10 modules: hyprland/workspaces, hyprland/window, clock, pulseaudio, network, tray, cpu, memory, battery, custom/power. All 6 required modules are present."
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "failed": 1,
+    "total": 9,
+    "pass_rate": 0.89
+  },
+  "timing": {
+    "total_duration_seconds": 151.3
+  },
+  "claims": [
+    {
+      "claim": "Uses Catppuccin Mocha color scheme",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Hex values in the CSS match the Catppuccin Mocha palette (e.g., #1e1e2e for Base, #cdd6f4 for Text, #cba6f7 for Mauve, #f38ba8 for Red)"
+    },
+    {
+      "claim": "Pill-shaped module styling",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Modules use border-radius: 14px with individual background colors creating distinct pill shapes, and the overall bar uses border-radius: 20px"
+    },
+    {
+      "claim": "Floating bar effect",
+      "type": "quality",
+      "verified": true,
+      "evidence": "margin-top: 8, margin-left: 10, margin-right: 10 combined with transparent window background and rounded box with semi-transparent background creates a floating appearance"
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "waybar style.css uses @define-color to define a color palette (at least 5 named colors)",
+        "reason": "This is a good discriminating assertion. Using @define-color is a best practice for maintainability in GTK CSS, and the output failed it by hardcoding hex values everywhere. However, note that many popular waybar themes in the wild do NOT use @define-color, so this tests a quality practice rather than correctness."
+      },
+      {
+        "reason": "No assertion checks whether the config.jsonc is valid JSON with comments (JSONC). A malformed config would fail to load. Consider adding a structural validity check."
+      },
+      {
+        "reason": "No assertion checks that the style.css and config.jsonc are internally consistent -- e.g., that every module referenced in the config has corresponding CSS styling. The output does this well but it goes untested."
+      }
+    ],
+    "overall": "Solid assertion set. The @define-color check is a useful discriminator that caught a genuine quality gap. Consider adding a structural validity assertion."
+  }
+}

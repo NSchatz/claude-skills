@@ -1,0 +1,79 @@
+{
+  "expectations": [
+    {
+      "text": "waybar style.css applies background-color and border-radius to individual module selectors (#clock, #battery, #network, etc.) rather than only to .modules-left/.modules-center/.modules-right",
+      "passed": true,
+      "evidence": "style.css lines 20-32: individual selectors #workspaces, #clock, #battery, #backlight, #network, #bluetooth, #pulseaudio each receive background-color: rgba(26, 27, 38, 0.85) and border-radius: 20px. No .modules-left/.modules-center/.modules-right selectors are used for pill styling."
+    },
+    {
+      "text": "waybar config includes a battery module with states (warning and/or critical thresholds)",
+      "passed": true,
+      "evidence": "config.jsonc battery module includes \"states\": { \"warning\": 30, \"critical\": 15 }"
+    },
+    {
+      "text": "waybar config includes a backlight module",
+      "passed": true,
+      "evidence": "config.jsonc includes a \"backlight\" module in modules-right and a full backlight configuration block with format and format-icons"
+    },
+    {
+      "text": "waybar config includes a bluetooth module",
+      "passed": true,
+      "evidence": "config.jsonc includes \"bluetooth\" in modules-right with full configuration: format, format-connected, format-connected-battery, tooltip formats, and on-click action"
+    },
+    {
+      "text": "style.css uses Tokyo Night colors (e.g. #1a1b26, #a9b1d6, #7aa2f7, #bb9af7, #9ece6a, or similar)",
+      "passed": true,
+      "evidence": "style.css uses canonical Tokyo Night palette colors throughout: #1a1b26 (bg), #c0caf5 (fg), #7aa2f7 (blue), #bb9af7 (purple), #9ece6a (green), #414868 (border), #f7768e (red), #7dcfff (cyan), #e0af68 (yellow), #545c7e (comment), #565f89 (dark fg)"
+    },
+    {
+      "text": "monitors.conf or hyprland.conf includes correct monitor lines for eDP-1 (1920x1080@60) and DP-1 (2560x1440@165) with DP-1 to the right",
+      "passed": true,
+      "evidence": "hyprland.conf lines 10-11: \"monitor = eDP-1, 1920x1080@60, 0x0, 1\" and \"monitor = DP-1, 2560x1440@165, 1920x0, 1\". DP-1 positioned at x=1920 (right edge of eDP-1's 1920px width), correctly placing it to the right."
+    },
+    {
+      "text": "waybar network module format includes signal strength ({signalStrength}) for wifi",
+      "passed": true,
+      "evidence": "config.jsonc network module: \"format-wifi\": \"  {signalStrength}%\" — includes {signalStrength} in the wifi format string"
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {},
+  "timing": {
+    "total_duration_seconds": 125.2
+  },
+  "claims": [
+    {
+      "claim": "Tokyo Night theme is applied consistently across all config files",
+      "type": "quality",
+      "verified": true,
+      "evidence": "hyprland.conf uses rgb(7aa2f7), rgb(bb9af7), rgb(414868) for borders; waybar style.css uses the same palette consistently; all colors map to the Tokyo Night Storm variant"
+    },
+    {
+      "claim": "Individual pill/capsule module styling is used",
+      "type": "quality",
+      "verified": true,
+      "evidence": "window#waybar background is transparent, each module selector gets its own background-color, border, and border-radius creating independent pill shapes with 3px margin between them"
+    },
+    {
+      "claim": "Laptop-appropriate features are included (touchpad, gestures, brightness keys)",
+      "type": "quality",
+      "verified": true,
+      "evidence": "hyprland.conf includes touchpad natural_scroll, workspace_swipe gestures, and XF86MonoBrightness keybinds — all laptop-relevant features"
+    }
+  ],
+  "user_notes_summary": null,
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "waybar style.css applies background-color and border-radius to individual module selectors (#clock, #battery, #network, etc.) rather than only to .modules-left/.modules-center/.modules-right",
+        "reason": "This assertion would also pass if modules are styled in a single combined selector rule (as they are here). It doesn't distinguish between truly individual per-module styling vs. a single rule targeting all modules identically. A stricter version could check that at least some modules have distinct background colors or border styles."
+      }
+    ],
+    "overall": "Assertions are well-targeted and cover the key requirements. The one weakness is that the 'individual module selectors' assertion can be satisfied by a single combined selector that applies identical styling to all modules — which is arguably still individual-pill styling, but worth noting."
+  }
+}

@@ -1,0 +1,145 @@
+{
+  "skill_name": "discord-bot",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Create a Discord moderation bot with TypeScript. I need ban, kick, warn, timeout, and purge commands. It should log all mod actions to a designated channel. I'll host it on a VPS with Docker. I already have a bot token and a test server.",
+      "expected_output": "A complete TypeScript project scaffold with discord.js v14, slash commands for ban/kick/warn/timeout/purge, Prisma schema with ModAction and GuildConfig models, a moderation log event system, Dockerfile, docker-compose.yml with PostgreSQL, and proper error handling.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "has-package-json",
+          "text": "Output includes a package.json with discord.js, @prisma/client, typescript, and pino as dependencies"
+        },
+        {
+          "id": "has-tsconfig",
+          "text": "Output includes a tsconfig.json with strict mode enabled and ES2022 target"
+        },
+        {
+          "id": "has-env-example",
+          "text": "Output includes a .env.example with DISCORD_TOKEN, CLIENT_ID, DEV_GUILD_ID, and DATABASE_URL"
+        },
+        {
+          "id": "has-dockerfile",
+          "text": "Output includes a multi-stage Dockerfile with a non-root user"
+        },
+        {
+          "id": "has-docker-compose",
+          "text": "Output includes a docker-compose.yml with bot and postgres services"
+        },
+        {
+          "id": "has-ban-command",
+          "text": "Output includes a ban command using SlashCommandBuilder with user and reason options and BanMembers permission"
+        },
+        {
+          "id": "has-warn-command",
+          "text": "Output includes a warn command that stores warnings in the database"
+        },
+        {
+          "id": "has-purge-command",
+          "text": "Output includes a purge command with a count option that uses bulkDelete"
+        },
+        {
+          "id": "has-prisma-schema",
+          "text": "Output includes a prisma/schema.prisma with GuildConfig and ModAction models using String IDs for Discord snowflakes"
+        },
+        {
+          "id": "has-deploy-commands",
+          "text": "Output includes a separate deploy-commands.ts script for registering slash commands"
+        },
+        {
+          "id": "has-interaction-handler",
+          "text": "Output includes an interactionCreate event handler with error handling and cooldown logic"
+        },
+        {
+          "id": "has-graceful-shutdown",
+          "text": "Output handles SIGINT and SIGTERM signals for graceful shutdown"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I want to build a Discord bot for my gaming community. It should have an XP/leveling system where people earn XP by chatting, rank cards with a generated image, and role rewards when they hit certain levels. Also need a basic economy with daily rewards and a shop. Use PostgreSQL and Redis. I have about 500 members.",
+      "expected_output": "A complete bot with leveling and economy systems, including messageCreate XP tracking with cooldowns, rank card image generation, level-up role rewards, economy commands (balance, daily, shop, buy, pay), Prisma schema with UserLevel, LevelReward, UserEconomy, ShopItem models, Redis for cooldowns, and proper anti-exploit measures.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "has-xp-tracking",
+          "text": "Output includes a messageCreate event handler that awards random XP (15-25 range) with a cooldown"
+        },
+        {
+          "id": "has-rank-card",
+          "text": "Output includes rank card image generation using @napi-rs/canvas or canvas"
+        },
+        {
+          "id": "has-level-rewards",
+          "text": "Output includes level-up role reward logic that grants roles when users reach configured levels"
+        },
+        {
+          "id": "has-economy-commands",
+          "text": "Output includes balance, daily, shop, and buy slash commands"
+        },
+        {
+          "id": "has-redis-cooldowns",
+          "text": "Output uses Redis for cooldown tracking (daily, work, or XP cooldowns)"
+        },
+        {
+          "id": "has-db-transactions",
+          "text": "Output uses database transactions for balance transfer operations to prevent race conditions"
+        },
+        {
+          "id": "has-leaderboard",
+          "text": "Output includes a leaderboard command with pagination"
+        },
+        {
+          "id": "uses-string-snowflakes",
+          "text": "Prisma schema uses String type for all Discord snowflake IDs, not Int"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Build me a support ticket bot for my SaaS product's Discord server. Users click a button to create a ticket, it makes a private thread, staff can claim tickets, and when closed it generates an HTML transcript. Also need a config command for admins to set up the ticket panel and support role. Deploy with GitHub Actions to my VPS.",
+      "expected_output": "A ticket system bot with button-based ticket creation, private thread management, claim/close/transcript functionality, admin configuration commands, HTML transcript generation, GitHub Actions CI/CD pipeline, and proper permission checks.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "has-ticket-button",
+          "text": "Output includes a setup command that sends an embed with a Create Ticket button using ButtonBuilder"
+        },
+        {
+          "id": "has-thread-creation",
+          "text": "Output creates a private thread when the ticket button is clicked"
+        },
+        {
+          "id": "has-claim-command",
+          "text": "Output includes a ticket claim command or button for staff"
+        },
+        {
+          "id": "has-close-flow",
+          "text": "Output includes a close command/button that generates a transcript before archiving"
+        },
+        {
+          "id": "has-transcript",
+          "text": "Output includes HTML transcript generation (either custom or using discord-html-transcripts)"
+        },
+        {
+          "id": "has-ticket-config",
+          "text": "Output includes admin configuration for support role, log channel, and greeting message"
+        },
+        {
+          "id": "has-github-actions",
+          "text": "Output includes a .github/workflows/ci.yml with lint, test, and deploy steps"
+        },
+        {
+          "id": "has-button-persistence",
+          "text": "Button interactions use stable customId patterns (not collectors) so they work after bot restarts"
+        },
+        {
+          "id": "has-max-tickets",
+          "text": "Output enforces a per-user limit on open tickets"
+        }
+      ]
+    }
+  ]
+}

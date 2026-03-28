@@ -1,0 +1,200 @@
+/* ── Catppuccin Mocha Palette ──────────────────────────── */
+/* Base:      #1e1e2e    Mantle:   #181825    Crust:    #11111b */
+/* Surface0:  #313244    Surface1: #45475a    Surface2: #585b70 */
+/* Text:      #cdd6f4    Subtext1: #bac2de    Subtext0: #a6adc8 */
+/* Overlay0:  #6c7086    Lavender: #b4befe    Blue:     #89b4fa */
+/* Sapphire:  #74c7ec    Sky:      #89dceb    Teal:     #94e2d5 */
+/* Green:     #a6e3a1    Yellow:   #f9e2af    Peach:    #fab387 */
+/* Maroon:    #eba0ac    Red:      #f38ba8    Mauve:    #cba6f7 */
+/* Pink:      #f5c2e7    Flamingo: #f2cdcd    Rosewater:#f5e0dc */
+
+/* ── Global ────────────────────────────────────────────── */
+* {
+    font-family: "JetBrainsMono Nerd Font", "Font Awesome 6 Free";
+    font-size: 13px;
+    font-weight: 600;
+    min-height: 0;
+}
+
+/* ── Bar ───────────────────────────────────────────────── */
+window#waybar {
+    background: transparent;
+}
+
+window#waybar > box {
+    background: rgba(30, 30, 46, 0.85);
+    border: 2px solid rgba(203, 166, 247, 0.4);
+    border-radius: 20px;
+    margin: 0;
+    padding: 0 4px;
+}
+
+/* ── Tooltip ───────────────────────────────────────────── */
+tooltip {
+    background: #1e1e2e;
+    border: 1px solid #cba6f7;
+    border-radius: 12px;
+}
+
+tooltip label {
+    color: #cdd6f4;
+    padding: 4px 8px;
+}
+
+/* ── Workspaces ────────────────────────────────────────── */
+#workspaces {
+    margin: 4px 4px;
+    padding: 0 2px;
+    background: rgba(49, 50, 68, 0.6);
+    border-radius: 14px;
+}
+
+#workspaces button {
+    color: #6c7086;
+    padding: 2px 8px;
+    margin: 3px 2px;
+    border-radius: 12px;
+    background: transparent;
+    border: none;
+    transition: all 0.3s ease;
+    min-width: 20px;
+}
+
+#workspaces button:hover {
+    color: #cdd6f4;
+    background: rgba(69, 71, 90, 0.6);
+}
+
+#workspaces button.active {
+    color: #1e1e2e;
+    background: linear-gradient(135deg, #cba6f7, #89b4fa);
+    border-radius: 12px;
+    font-weight: 800;
+}
+
+#workspaces button.urgent {
+    color: #1e1e2e;
+    background: #f38ba8;
+}
+
+/* ── Window Title ──────────────────────────────────────── */
+#window {
+    color: #bac2de;
+    padding: 0 12px;
+    margin: 4px 0;
+    font-style: italic;
+    font-weight: 400;
+}
+
+window#waybar.empty #window {
+    padding: 0;
+    margin: 0;
+    opacity: 0;
+}
+
+/* ── Clock ─────────────────────────────────────────────── */
+#clock {
+    color: #cdd6f4;
+    background: rgba(49, 50, 68, 0.6);
+    padding: 4px 16px;
+    margin: 4px 0;
+    border-radius: 14px;
+    font-weight: 700;
+}
+
+/* ── Module Pill Group (Right) ─────────────────────────── */
+#tray,
+#pulseaudio,
+#network,
+#cpu,
+#memory,
+#battery {
+    padding: 4px 10px;
+    margin: 4px 1px;
+    color: #cdd6f4;
+    border-radius: 14px;
+    transition: all 0.3s ease;
+}
+
+/* ── Individual Module Colors ──────────────────────────── */
+#pulseaudio {
+    color: #f9e2af;
+    background: rgba(249, 226, 175, 0.1);
+}
+
+#pulseaudio.muted {
+    color: #6c7086;
+    background: rgba(108, 112, 134, 0.1);
+}
+
+#network {
+    color: #89dceb;
+    background: rgba(137, 220, 235, 0.1);
+}
+
+#network.disconnected {
+    color: #f38ba8;
+    background: rgba(243, 139, 168, 0.1);
+}
+
+#cpu {
+    color: #a6e3a1;
+    background: rgba(166, 227, 161, 0.1);
+}
+
+#memory {
+    color: #94e2d5;
+    background: rgba(148, 226, 213, 0.1);
+}
+
+#battery {
+    color: #a6e3a1;
+    background: rgba(166, 227, 161, 0.1);
+}
+
+#battery.warning {
+    color: #fab387;
+    background: rgba(250, 179, 135, 0.15);
+}
+
+#battery.critical {
+    color: #f38ba8;
+    background: rgba(243, 139, 168, 0.15);
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    50% { opacity: 0.6; }
+}
+
+#battery.charging {
+    color: #a6e3a1;
+}
+
+/* ── Tray ──────────────────────────────────────────────── */
+#tray {
+    background: rgba(49, 50, 68, 0.4);
+}
+
+#tray > .passive {
+    -gtk-icon-effect: dim;
+}
+
+#tray > .needs-attention {
+    -gtk-icon-effect: highlight;
+}
+
+/* ── Power Button ──────────────────────────────────────── */
+#custom-power {
+    color: #f38ba8;
+    background: rgba(243, 139, 168, 0.1);
+    padding: 4px 12px;
+    margin: 4px 4px 4px 2px;
+    border-radius: 14px;
+    transition: all 0.3s ease;
+}
+
+#custom-power:hover {
+    color: #1e1e2e;
+    background: #f38ba8;
+}

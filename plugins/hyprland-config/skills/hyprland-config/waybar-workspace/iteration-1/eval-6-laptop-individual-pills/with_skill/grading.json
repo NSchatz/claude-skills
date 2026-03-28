@@ -1,0 +1,77 @@
+{
+  "expectations": [
+    {
+      "text": "waybar style.css applies background-color and border-radius to individual module selectors (#clock, #battery, #network, etc.) rather than only to .modules-left/.modules-center/.modules-right",
+      "passed": true,
+      "evidence": "Lines 59-75 of waybar-style.css apply background-color (alpha(@bg, 0.85)) and border-radius (12px) to individual module selectors: #workspaces, #submap, #window, #bluetooth, #network, #backlight, #pulseaudio, #battery, #clock, #tray, #custom-power. The .modules-left/.modules-center/.modules-right selectors (lines 52-56) are set to background: transparent, confirming the pill styling is on individual modules."
+    },
+    {
+      "text": "waybar config includes a battery module with states (warning and/or critical thresholds)",
+      "passed": true,
+      "evidence": "waybar-config.jsonc lines 87-97 show a battery module with \"states\": { \"warning\": 30, \"critical\": 15 }."
+    },
+    {
+      "text": "waybar config includes a backlight module",
+      "passed": true,
+      "evidence": "waybar-config.jsonc lines 67-71 define a \"backlight\" module with format \"{icon} {percent}%\" and format-icons. It is also listed in modules-right on line 14."
+    },
+    {
+      "text": "waybar config includes a bluetooth module",
+      "passed": true,
+      "evidence": "waybar-config.jsonc lines 45-56 define a \"bluetooth\" module with multiple format variants. It is listed in modules-right on line 14."
+    },
+    {
+      "text": "style.css uses Tokyo Night colors (e.g. #1a1b26, #a9b1d6, #7aa2f7, #bb9af7, #9ece6a, or similar)",
+      "passed": true,
+      "evidence": "waybar-style.css lines 1-25 define a full Tokyo Night palette including #1a1b26 (bg), #a9b1d6 (fg_dark), #7aa2f7 (blue), #bb9af7 (magenta), #9ece6a (green), and many more Tokyo Night colors. These are used throughout the stylesheet via @define-color variables."
+    },
+    {
+      "text": "monitors.conf or hyprland.conf includes correct monitor lines for eDP-1 (1920x1080@60) and DP-1 (2560x1440@165) with DP-1 to the right",
+      "passed": true,
+      "evidence": "monitors.conf line 4: \"monitor = eDP-1, 1920x1080@60, 0x0, 1\" and line 5: \"monitor = DP-1, 2560x1440@165, 1920x0, 1\". DP-1 is positioned at x=1920 (to the right of the 1920-wide eDP-1 at x=0)."
+    },
+    {
+      "text": "waybar network module format includes signal strength ({signalStrength}) for wifi",
+      "passed": true,
+      "evidence": "waybar-config.jsonc line 59: \"format-wifi\": \"  {signalStrength}%\""
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  },
+  "timing": {
+    "total_duration_seconds": 227.5
+  },
+  "claims": [
+    {
+      "claim": "The config uses a transparent bar background with individual pill-shaped modules",
+      "type": "quality",
+      "verified": true,
+      "evidence": "window#waybar has background: transparent, .modules-left/center/right have background: transparent, and individual modules get alpha(@bg, 0.85) with border-radius: 12px creating pill capsules"
+    },
+    {
+      "claim": "Battery has a blink animation for critical state",
+      "type": "factual",
+      "verified": true,
+      "evidence": "style.css lines 141-144 define #battery.critical with animation: blink 1s, and lines 168-173 define the @keyframes blink animation"
+    },
+    {
+      "claim": "A fallback monitor rule is included for hotplugged monitors",
+      "type": "factual",
+      "verified": true,
+      "evidence": "monitors.conf line 8: \"monitor = , preferred, auto, 1\""
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "waybar style.css applies background-color and border-radius to individual module selectors (#clock, #battery, #network, etc.) rather than only to .modules-left/.modules-center/.modules-right",
+        "reason": "This assertion could be more discriminating by requiring that .modules-left/.modules-center/.modules-right do NOT have background-color set (or are transparent). A config could satisfy this by styling both the section containers and individual modules, which would look wrong (double backgrounds)."
+      }
+    ],
+    "overall": "Assertions are well-targeted and cover the key laptop-specific features (battery, backlight, bluetooth) plus the individual-pill styling requirement. The monitor positioning check is particularly good since it verifies both resolution/refresh and spatial arrangement."
+  }
+}
