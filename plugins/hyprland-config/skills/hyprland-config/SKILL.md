@@ -225,6 +225,8 @@ Detect package manager, install all chosen packages, copy configs to `~/.config/
 
 ### Step 6: Validate before presenting
 
+**After every config change** — whether writing new files or editing existing ones — run `hyprctl configerrors` and show the output to the user. An empty response means the config parsed cleanly. If there are errors, fix them before presenting the final result. This applies to all Hyprland config files (`hyprland.conf`, `keybinds.conf`, `windowrules.conf`, etc.) — not companion app configs like `waybar/config.jsonc` or `dunstrc`.
+
 - **env vars**: `env = KEY,VALUE` — no space before value, no quotes
 - **`exec-once` vs `exec`**: `exec-once` = startup only; `exec` = every config reload (using `exec` for daemons creates duplicates)
 - **Shadow/blur are subcategories**: `decoration:shadow:enabled = true`, `decoration:blur:size = 8` — not flat `drop_shadow = true`
