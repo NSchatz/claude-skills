@@ -61,12 +61,12 @@ general {
     gaps_out = 16          # from screen edge; 10-20 common
     border_size = 2        # 2-3px in rices; 1 gets lost; 0 = borderless
 
-    # Gradient border — two accent colors at an angle
-    col.active_border = rgba(cba6f7ff) rgba(89b4faff) 45deg
+    # Gradient border — three accent colors for richer visual effect (most popular)
+    col.active_border = rgba(cba6f7ff) rgba(89b4faff) rgba(a6e3a1ff) 45deg
     col.inactive_border = rgba(595959aa)
 
-    # Animated rotating gradient (use `once` not `loop` — loop drains GPU)
-    # col.active_border = rgba(cba6f7ff) rgba(89b4faff) rgba(a6e3a1ff) 45deg
+    # Two-color variant (simpler):
+    # col.active_border = rgba(cba6f7ff) rgba(89b4faff) 45deg
 
     resize_on_border = true   # drag window borders to resize — very popular QoL
     layout = dwindle
@@ -257,7 +257,7 @@ windowrule {
     opacity = 0.92 override 0.85 override
 }
 
-# Force opaque for media/games
+# Force opaque for media/games/browsers — critical when active_opacity < 1.0
 windowrule {
     name = opaque-mpv
     match:class = mpv
@@ -265,8 +265,27 @@ windowrule {
 }
 
 windowrule {
+    name = opaque-firefox
+    match:class = firefox
+    opaque = on
+}
+
+windowrule {
+    name = opaque-chromium
+    match:class = (chromium|google-chrome|brave-browser)
+    opaque = on
+}
+
+windowrule {
     name = opaque-steam
     match:class = steam
+    opaque = on
+}
+
+# Force opaque for all fullscreen windows (games, video, presentations)
+windowrule {
+    name = opaque-fullscreen
+    match:fullscreen = true
     opaque = on
 }
 
@@ -646,7 +665,7 @@ Use in keybind: `bind = SUPER, R, exec, rofi -show drun -theme ~/.config/rofi/th
 
 ## Common rice mistakes
 
-1. **Opacity stacking without `override`** — `inactive_opacity = 0.85` + windowrule `opacity 0.85` = 0.72. Add `override`.
+1. **Opacity stacking without `override`** — `inactive_opacity = 0.85` + windowrule `opacity 0.85` = 0.72. Add `override`. This also applies to terminal emulators: kitty's `background_opacity = 0.92` × Hyprland's `active_opacity = 0.92` = 0.85. Fix by setting kitty `background_opacity = 1.0` and using a window rule with `override` instead.
 2. **`blur:passes = 1` with high `blur:size`** — looks grainy. Match the table above.
 3. **Thin border (`border_size = 1`) with gap rice** — barely visible. Use 2-3px.
 4. **Missing `layerrule = blur true`** for bars/launchers — windows blur but waybar stays flat. Use `blur true` NOT `blur on`.

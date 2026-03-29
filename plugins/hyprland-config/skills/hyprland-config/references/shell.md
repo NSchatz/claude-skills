@@ -491,6 +491,8 @@ palette = "catppuccin_mocha"
 
 ## TTY Launch Lines
 
+> **IMPORTANT**: Only generate TTY launch lines if the user chose **no display manager** (TTY launch). If they chose greetd, SDDM, or any other DM, do NOT add these lines — the display manager handles session launch. Having both creates a conflict where the TTY line may try to start Hyprland before the DM does, or starts a second session on VT1.
+
 When the user chooses no display manager (TTY launch), the auto-login line depends on their shell:
 
 **Bash** — add to `~/.bash_profile`:

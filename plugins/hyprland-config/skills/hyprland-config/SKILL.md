@@ -326,7 +326,7 @@ Key rules:
 - Use `hyprland/workspaces` (never `sway/workspaces`) and `hyprland/window`
 - In CSS: `#workspaces button.active` (not `.focused`)
 - Use `@define-color` at the top of `style.css` to define the full color palette — every module should reference these colors for consistency
-- Always include: workspaces, window title, clock, tray, audio (pulseaudio or wireplumber), network. Add battery + backlight for laptops
+- Always include: workspaces, window title, clock, tray, audio (pulseaudio or wireplumber), network. Add battery + backlight for laptops. Add `hyprland/submap` when the user has submaps configured — it shows which mode is active (resize, power, etc.) and prevents confusion
 - Default to the **floating pill bar** style (transparent `window#waybar`, rounded `.modules-left/center/right` containers, `margin-top/left/right` for floating effect) — this is the most popular community pattern and looks significantly more polished than a flat solid bar
 - Include `"reload_style_on_change": true` so users can iterate on CSS without restarting
 - Set `"margin-top": 6, "margin-left": 8, "margin-right": 8` for the floating effect
@@ -348,6 +348,17 @@ The bar is one of the most visible parts of a rice — a flat, unstyled bar with
 
 #### kitty
 `kitty.conf` with font, font size, opacity, all 16 terminal colors, cursor style.
+
+**Opacity stacking pitfall**: If Hyprland's `active_opacity` is < 1.0 AND kitty's `background_opacity` is < 1.0, they multiply (e.g., 0.92 × 0.92 = 0.85). To avoid this, set kitty `background_opacity = 1.0` and control opacity entirely through Hyprland window rules with `override`:
+```ini
+windowrule {
+    name = opacity-kitty
+    match:class = kitty
+    opacity = 0.92 override 0.78 override
+}
+```
+
+**Shell directive**: If the user is switching to a non-default shell (fish, zsh), add `shell /usr/bin/fish` (or `/usr/bin/zsh`) to `kitty.conf` so it takes effect immediately without waiting for `chsh` + re-login.
 
 #### hyprlock
 Load `references/hyprlock.md` and `references/ricing.md`. Generate with `background {}` (blurred screenshot is most popular), `input-field {}` (full color states: outer, inner, check, fail, capslock), and `label {}` blocks for clock/date. Optionally add `image {}` for profile picture and `shape {}` for decorative elements. Match all colors to the theme. Add `animations {}` block. **A config is required — without one, hyprlock locks but renders nothing.**
@@ -375,7 +386,7 @@ Load `references/shell.md` now. Generate shell config based on Group H answers:
 - **Powerlevel10k**: If using p10k, add the source line to `.zshrc` and tell the user to run `p10k configure` after install — the wizard generates `~/.p10k.zsh` interactively.
 - **Plugin setup**: For zsh with system packages, add `source` lines for syntax highlighting + autosuggestions. For zsh with zinit, generate the zinit block. For fish with fisher, add fisher install commands to `install.sh`.
 - **CLI utilities**: Add initialization lines for zoxide and fzf to the shell rc. Generate aliases (bash/zsh) or abbreviations (fish) only for tools the user chose to install.
-- **TTY launch line**: If the user chose no display manager, add the Hyprland auto-start line to the correct login profile for their shell (`.bash_profile`, `.zprofile`, or `config.fish`). Use uwsm variant if applicable.
+- **TTY launch line**: If the user chose no display manager, add the Hyprland auto-start line to the correct login profile for their shell (`.bash_profile`, `.zprofile`, or `config.fish`). Use uwsm variant if applicable. **Do NOT generate TTY launch lines if the user chose greetd or SDDM** — the display manager handles session launch, and having both creates a conflict where the TTY line tries to start Hyprland before greetd does.
 - **Default shell change**: Add `chsh -s /usr/bin/zsh` (or fish) to `install.sh` if the user chose a non-default shell. Include a comment that re-login is required.
 - **Fastfetch**: If installed, optionally add `fastfetch` to the end of the shell rc so it displays system info on terminal launch. Ask the user if they want this — some find it annoying on every new terminal.
 
@@ -471,6 +482,33 @@ bindmd = $mainMod, mouse:273, Resize window, resizewindow
 # Workspace scroll
 bindd = $mainMod, mouse_down, Next workspace, workspace, e+1
 bindd = $mainMod, mouse_up, Previous workspace, workspace, e-1
+```
+
+### Opacity overrides for media (when using global opacity < 1.0)
+
+When `active_opacity` or `inactive_opacity` is below 1.0, browsers, video players, games, and fullscreen apps will appear semi-transparent. Always generate these overrides:
+
+```ini
+windowrule {
+    name = opaque-firefox
+    match:class = firefox
+    opaque = on
+}
+windowrule {
+    name = opaque-chromium
+    match:class = (chromium|google-chrome|brave-browser)
+    opaque = on
+}
+windowrule {
+    name = opaque-steam
+    match:class = steam
+    opaque = on
+}
+windowrule {
+    name = opaque-fullscreen
+    match:fullscreen = true
+    opaque = on
+}
 ```
 
 ### Window rules
