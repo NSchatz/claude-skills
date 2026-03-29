@@ -56,11 +56,17 @@ async execute(interaction: ChatInputCommandInteraction) {
 
 ```ts
 // /chat — creates a thread and maintains conversation history
+import { type TextChannel } from 'discord.js';
 
 async execute(interaction: ChatInputCommandInteraction) {
+  // threads.create() only exists on TextChannel/NewsChannel, not DMChannel or PartialGroupDMChannel
+  if (!interaction.channel || !('threads' in interaction.channel)) {
+    return interaction.reply({ content: 'This command can only be used in a text channel.', ephemeral: true });
+  }
+
   await interaction.deferReply();
 
-  const thread = await interaction.channel!.threads.create({
+  const thread = await (interaction.channel as TextChannel).threads.create({
     name: `Chat with ${interaction.user.displayName}`,
     autoArchiveDuration: 60,
     reason: 'AI conversation thread',
@@ -83,7 +89,8 @@ async execute(interaction: ChatInputCommandInteraction) {
     const trimmedHistory = history.slice(-20);
 
     try {
-      await message.channel.sendTyping();
+      // sendTyping doesn't exist on all channel types (e.g. PartialGroupDMChannel)
+      if ('sendTyping' in message.channel) await message.channel.sendTyping();
 
       const response = await anthropic.messages.create({
         model: 'claude-sonnet-4-20250514',
@@ -378,7 +385,7 @@ shoukaku.on('close', (name, code, reason) => logger.warn({ name, code, reason },
 
 ```ts
 // src/lib/queue.ts
-import type { Player, Track } from 'shoukaku';
+import type { Player, Track, Shoukaku } from 'shoukaku';
 
 interface GuildQueue {
   player: Player;
@@ -408,10 +415,16 @@ export function createQueue(guildId: string, player: Player, textChannelId: stri
   return queue;
 }
 
-export function destroyQueue(guildId: string) {
+// In Shoukaku v4, Player no longer exposes player.connection.disconnect().
+// Use shoukaku.leaveVoiceChannel() when available, or player.destroy() as fallback.
+export function destroyQueue(guildId: string, shoukaku?: Shoukaku) {
   const queue = queues.get(guildId);
   if (queue) {
-    queue.player.connection.disconnect();
+    if (shoukaku) {
+      shoukaku.leaveVoiceChannel(guildId).catch(() => {});
+    } else {
+      queue.player.destroy().catch(() => {});
+    }
     queues.delete(guildId);
   }
 }
@@ -420,6 +433,8 @@ export function destroyQueue(guildId: string) {
 ### Play command (simplified)
 
 ```ts
+import type { Track } from 'shoukaku';
+
 async execute(interaction: ChatInputCommandInteraction) {
   const query = interaction.options.getString('query', true);
   const member = interaction.member as GuildMember;
@@ -432,10 +447,10 @@ async execute(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply();
 
   // Get or create player
+  // In Shoukaku v4, joinVoiceChannel() is on the Shoukaku instance, NOT on individual nodes
   let queue = getQueue(interaction.guildId!);
   if (!queue) {
-    const node = shoukaku.options.nodeResolver(shoukaku.nodes);
-    const player = await node!.joinChannel({
+    const player = await shoukaku.joinVoiceChannel({
       guildId: interaction.guildId!,
       channelId: voiceChannel.id,
       shardId: 0,
@@ -444,15 +459,30 @@ async execute(interaction: ChatInputCommandInteraction) {
   }
 
   // Search for track
-  const result = await queue.player.node.rest.resolve(
-    query.startsWith('http') ? query : `scsearch:${query}` // SoundCloud search
-  );
+  const node = [...shoukaku.nodes.values()][0];
+  const searchQuery = query.startsWith('http') ? query : `scsearch:${query}`;
+  const result = await node.rest.resolve(searchQuery);
 
   if (!result?.data || (Array.isArray(result.data) && result.data.length === 0)) {
     return interaction.editReply('No results found.');
   }
 
-  const track = Array.isArray(result.data) ? result.data[0] : result.data;
+  // resolve() returns different shapes depending on loadType:
+  //   TrackResult  → data is a Track
+  //   SearchResult → data is Track[]
+  //   PlaylistResult → data is a Playlist (has .tracks array)
+  //   EmptyResult/ErrorResult → data has no tracks
+  let track: Track;
+  if ('tracks' in result.data && Array.isArray((result.data as { tracks: Track[] }).tracks)) {
+    track = (result.data as { tracks: Track[] }).tracks[0];
+  } else if (Array.isArray(result.data)) {
+    track = result.data[0];
+  } else if ('encoded' in result.data) {
+    track = result.data as Track;
+  } else {
+    return interaction.editReply('No results found.');
+  }
+
   queue.tracks.push(track);
 
   if (!queue.current) {

@@ -311,14 +311,15 @@ import Redis from 'ioredis';
 import { config } from './config.js';
 import { logger } from './logger.js';
 
+// ioredis with ESM: the default export is a namespace, so use Redis.default as the constructor
 export const redis = config.REDIS_URL
-  ? new Redis(config.REDIS_URL, {
+  ? new Redis.default(config.REDIS_URL, {
       maxRetriesPerRequest: 3,
       lazyConnect: true,
     })
   : null;
 
-redis?.on('error', (err) => logger.error(err, 'Redis error'));
+redis?.on('error', (err: Error) => logger.error(err, 'Redis error'));
 redis?.on('connect', () => logger.info('Redis connected'));
 ```
 

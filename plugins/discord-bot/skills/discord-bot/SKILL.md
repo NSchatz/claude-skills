@@ -184,6 +184,12 @@ These apply to all generated code:
 - No `any` types — use `unknown` + type guards or proper discord.js types
 - Use `const enum` or object literals for constants, not magic strings
 - ES2022 target, Node16 module resolution
+- **Type error-prone patterns to watch for:**
+  - **ioredis ESM import**: `import Redis from 'ioredis'` gives a namespace, not a class. Construct with `new Redis.default(url, opts)`, not `new Redis(url, opts)`. Error callbacks need typed params: `.on('error', (err: Error) => ...)`
+  - **`ms()` package**: With strict types, `ms(someString)` fails because `string` is not assignable to `ms.StringValue`. Cast user input: `ms(durationStr as ms.StringValue)`
+  - **discord.js channel unions**: `TextBasedChannel` is a union including `PartialGroupDMChannel` which lacks `.send()`, `.sendTyping()`, and `.threads`. Always narrow with type guards: `if ('send' in channel)`, `if ('threads' in channel)`, or `if ('sendTyping' in channel)` before accessing these properties
+  - **Collection `.first(n)`**: Returns an array `T[]`, not a `Collection`. Don't assign back to a Collection variable — use `[...collection.values()].slice(0, n)` and reconstruct if needed
+  - **Shoukaku v4 API**: `joinVoiceChannel()` is on the `Shoukaku` instance, not on `Node`. `Player` has no `.connection` property — use `shoukaku.leaveVoiceChannel(guildId)` or `player.destroy()`. `node.rest.resolve()` returns different `data` shapes per `loadType` — always check with `Array.isArray()` and `'encoded' in result.data` before using as `Track`
 
 ### Discord.js Patterns
 
@@ -258,6 +264,10 @@ These are patterns that cause real production issues. The generated code must av
 10. **Mass DM on member join** — Many users have DMs disabled. Always handle the error silently.
 11. **Editing messages in a loop** — Hits rate limits (5 edits/5s per channel). Batch updates.
 12. **No graceful shutdown** — Causes dangling connections, incomplete database writes, and reconnection storms.
+13. **Untyped error callbacks in strict mode** — `.catch((err) => ...)` and `.on('error', (err) => ...)` fail with `noImplicitAny`. Always annotate: `.catch((err: Error) => ...)`.
+14. **Wrong ioredis constructor in ESM** — `new Redis(url)` fails because `import Redis from 'ioredis'` is a namespace in ESM. Use `new Redis.default(url, opts)`.
+15. **Shoukaku v4 API mismatch** — `node.joinChannel()` and `player.connection.disconnect()` are Shoukaku v3 patterns. In v4, use `shoukaku.joinVoiceChannel()` and `shoukaku.leaveVoiceChannel()` / `player.destroy()`.
+16. **Accessing `.threads`/`.send()`/`.sendTyping()` without narrowing** — `TextBasedChannel` includes types like `PartialGroupDMChannel` that lack these methods. Always use `'threads' in channel` or similar type guards first.
 
 ---
 
