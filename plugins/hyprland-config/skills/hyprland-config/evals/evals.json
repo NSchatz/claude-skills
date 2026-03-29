@@ -312,6 +312,138 @@
           "text": "install.sh includes fish, starship, eza, bat, fzf, zoxide in package list"
         }
       ]
+    },
+    {
+      "id": 9,
+      "prompt": "Full Hyprland setup on Arch. Single 3440x1440 144Hz ultrawide, desktop. I want rofi-wayland as my launcher (not wofi), swaync for notifications (I want the full notification center with media controls and DND toggle), and wlogout for my power menu. Catppuccin Mocha, JetBrainsMono Nerd Font, kitty, waybar (floating pill style), hyprlock, hypridle, hyprpaper. Moderate blur, 10px rounding, smart gaps.",
+      "expected_output": "A complete Hyprland config set with: rofi config.rasi + theme file with Catppuccin Mocha colors, swaync config.json (with mpris and dnd widgets) + style.css with full themed CSS, wlogout layout + style.css with themed buttons. Waybar should have a custom/swaync toggle button and a custom/power button for wlogout. Layer rules for blur on rofi and swaync.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "rofi-config-generated",
+          "text": "A rofi config.rasi or theme .rasi file is generated (not wofi config)"
+        },
+        {
+          "id": "rofi-catppuccin-colors",
+          "text": "rofi theme uses Catppuccin Mocha colors (e.g. #1e1e2e, #cba6f7, #cdd6f4)"
+        },
+        {
+          "id": "swaync-config-json",
+          "text": "swaync config.json is generated with a widgets array"
+        },
+        {
+          "id": "swaync-mpris-widget",
+          "text": "swaync config.json includes 'mpris' in the widgets array for media controls"
+        },
+        {
+          "id": "swaync-dnd-widget",
+          "text": "swaync config.json includes 'dnd' in the widgets array"
+        },
+        {
+          "id": "swaync-style-css",
+          "text": "swaync style.css is generated with themed selectors (.control-center, .notification, etc.)"
+        },
+        {
+          "id": "wlogout-layout",
+          "text": "wlogout layout file is generated as a JSON array with button objects (lock, logout, reboot, shutdown at minimum)"
+        },
+        {
+          "id": "wlogout-style",
+          "text": "wlogout style.css is generated with per-button styling"
+        },
+        {
+          "id": "waybar-swaync-button",
+          "text": "waybar config includes a custom module for toggling swaync (using swaync-client)"
+        },
+        {
+          "id": "waybar-power-button",
+          "text": "waybar config includes a custom/power module that launches wlogout"
+        },
+        {
+          "id": "layerrule-rofi",
+          "text": "Hyprland config includes a layerrule for blur on rofi"
+        },
+        {
+          "id": "layerrule-swaync",
+          "text": "Hyprland config includes a layerrule for blur on swaync-control-center"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "I already have Hyprland running with hyprpaper but I want to switch to swww for animated wallpaper transitions. I have a folder of wallpapers at ~/Pictures/wallpapers/. I want: swww set up in autostart (replacing hyprpaper), a script that cycles through wallpapers randomly every 5 minutes with a fade transition, and a keybind (SUPER+W) to immediately switch to a random wallpaper with a wipe transition. Just give me the swww-related files, not a full config.",
+      "expected_output": "Updated autostart lines (swww-daemon replacing hyprpaper), a wallpaper cycling shell script, and a keybind snippet. The script should use swww img with transition flags.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "swww-daemon-autostart",
+          "text": "Output includes exec-once = swww-daemon (or swww-daemon with initial wallpaper)"
+        },
+        {
+          "id": "no-hyprpaper",
+          "text": "Output mentions removing or replacing the hyprpaper autostart line"
+        },
+        {
+          "id": "cycling-script",
+          "text": "A shell script is generated that cycles through wallpapers in ~/Pictures/wallpapers/"
+        },
+        {
+          "id": "fade-transition",
+          "text": "The cycling script uses --transition-type fade (or similar smooth transition)"
+        },
+        {
+          "id": "5-minute-interval",
+          "text": "The cycling script uses a 300 second (5 minute) interval"
+        },
+        {
+          "id": "keybind-super-w",
+          "text": "A keybind for SUPER+W is generated that triggers a random wallpaper change"
+        },
+        {
+          "id": "wipe-transition-keybind",
+          "text": "The keybind wallpaper script uses --transition-type wipe"
+        },
+        {
+          "id": "swww-only-output",
+          "text": "Output focuses on swww-related files only (not a full Hyprland config rewrite)"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "I need just a fuzzel config for my Hyprland setup. I'm using Gruvbox Dark colors, JetBrainsMono Nerd Font size 12, Papirus icons. I want it to feel minimal — no thick borders, subtle rounded corners. Also give me the Hyprland layerrule for blur on it.",
+      "expected_output": "A fuzzel.ini config file with Gruvbox Dark colors in RRGGBBAA format, the specified font, Papirus icons, thin border, and a layerrule snippet.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "fuzzel-ini-generated",
+          "text": "A fuzzel.ini config file is generated"
+        },
+        {
+          "id": "gruvbox-colors",
+          "text": "Colors section uses Gruvbox Dark palette (e.g. 282828 for background, ebdbb2 for text)"
+        },
+        {
+          "id": "rrggbbaa-format",
+          "text": "Colors are in RRGGBBAA format (8 hex chars, no # prefix) as fuzzel requires"
+        },
+        {
+          "id": "font-set",
+          "text": "Font is set to JetBrainsMono Nerd Font with size 12"
+        },
+        {
+          "id": "papirus-icons",
+          "text": "icon-theme is set to Papirus"
+        },
+        {
+          "id": "layerrule-blur",
+          "text": "Output includes a layerrule for blur on the launcher layer namespace"
+        },
+        {
+          "id": "fuzzel-only-output",
+          "text": "Output is a standalone fuzzel config (not a full Hyprland setup)"
+        }
+      ]
     }
   ]
 }

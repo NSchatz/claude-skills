@@ -328,15 +328,32 @@ Find a layer's namespace: `hyprctl layers`
 
 ## Hyprland plugins (hyprpm)
 
+### Build dependencies
+
+hyprpm compiles plugins from source, so build tools are required:
+
 ```bash
-hyprpm add https://github.com/OWNER/REPO
-hyprpm enable PLUGIN_NAME
-hyprpm update
+# Arch — install build dependencies first
+sudo pacman -S cmake cpio pkg-config git gcc
+
+# Then manage plugins
+hyprpm update                              # fetch/update Hyprland headers (required first)
+hyprpm add https://github.com/OWNER/REPO   # add a plugin repository
+hyprpm enable PLUGIN_NAME                  # enable a specific plugin
 ```
 
 Load at startup: `exec-once = hyprpm reload -n` in autostart.conf.
 
+### Plugin compatibility
+
+Plugins compile against your specific Hyprland version. Some plugins may fail to build if they haven't been updated for your version. This is normal — just skip plugins that fail and check back after `hyprpm update`. The `hyprpm add` command builds all plugins in a repo but only fails silently for individual plugins — check the output to see which ones actually succeeded.
+
 ### Popular ricing plugins
+
+All of these are in the official `hyprwm/hyprland-plugins` repository:
+```bash
+hyprpm add https://github.com/hyprwm/hyprland-plugins
+```
 
 **hyprexpo** — workspace overview grid (macOS Exposé):
 ```ini
@@ -345,13 +362,13 @@ plugin {
         columns = 3
         gap_size = 5
         bg_col = rgba(111111ff)
-        workspace_method = center current
-        enable_gesture = true
-        gesture_fingers = 3
+        workspace_method = center current   # center m = monitor, center current = current workspace
     }
 }
-bind = SUPER, grave, hyprexpo:expo, toggle
+bindd = SUPER, grave, Workspace overview, hyprexpo:expo, toggle
 ```
+
+> **hyprexpo gesture options were removed.** Do NOT use `enable_gesture`, `gesture_fingers`, `gesture_distance`, or `gesture_positive` — these are not valid config options and cause parse errors. Touchpad gestures for workspace overview should be configured through Hyprland's native gesture system instead.
 
 **hyprbars** — window title bars with close/max/min buttons:
 ```ini
@@ -362,9 +379,11 @@ plugin {
         col.text = rgba(cdd6f4ff)
         bar_text_font = JetBrainsMono Nerd Font
         bar_text_size = 11
+        bar_text_align = center
         bar_part_of_window = true
+        bar_precedence_over_border = true
         buttons {
-            button_size = 10
+            button_size = 12
             col.close = rgba(f38ba8ff)
             col.maximize = rgba(a6e3a1ff)
             col.minimize = rgba(f9e2afff)
@@ -372,6 +391,8 @@ plugin {
     }
 }
 ```
+
+> **There is no `plugin:hyprbars:nobar` windowrule.** Do NOT add `plugin:hyprbars:nobar = true` to windowrule blocks — it is not a valid windowrule field and causes parse errors. Hyprbars applies title bars to all windows; there is no per-window opt-out through Hyprland's windowrule system. If the user wants to disable bars on specific apps, they would need to disable the plugin entirely.
 
 **hyprtrails** — fading cursor trail:
 ```ini
@@ -382,6 +403,8 @@ plugin {
 }
 ```
 
+> **hyprtrails may fail to build** on newer Hyprland versions. If `hyprpm add` reports a build failure for hyprtrails, skip it — comment out the plugin block and note it in the config. Don't add config for plugins that failed to build.
+
 **hyprwinwrap** — renders a window as wallpaper (video wallpapers):
 ```ini
 windowrule = noblur,  match:class hyprwinwrap
@@ -391,6 +414,13 @@ windowrule = pin,     match:class hyprwinwrap
 windowrule = noanim,  match:class hyprwinwrap
 exec-once = hyprwinwrap -c "mpv --loop --no-audio ~/wallpaper.mp4"
 ```
+
+### Plugin config validation
+
+Plugin configuration is fragile — options change between versions and invalid options cause parse errors. After generating any plugin config:
+1. Only use options shown in the examples above — don't invent or guess at options
+2. Run `hyprctl configerrors` to verify the config parses cleanly
+3. If an option causes a parse error, remove it rather than trying variants
 
 ---
 
@@ -683,3 +713,7 @@ Use in keybind: `bind = SUPER, R, exec, rofi -show drun -theme ~/.config/rofi/th
 16. **Catppuccin cursor name mismatch** — `catppuccin-cursors-mocha` installs per-accent (e.g., `catppuccin-mocha-mauve-cursors`), not just `catppuccin-mocha-dark-cursors`. Check `/usr/share/icons/` for actual names.
 17. **Unquoted uwsm env values** — `export QT_QPA_PLATFORM=wayland;xcb` will execute `xcb` as a command. Must be `export QT_QPA_PLATFORM='wayland;xcb'`. Same for `GDK_BACKEND`.
 18. **Font verification with `fc-list | grep`** — unreliable due to full path output. Use `fc-list : family | grep -qi` to search clean family names only.
+19. **Invalid hyprexpo gesture options** — `enable_gesture`, `gesture_fingers`, `gesture_distance`, `gesture_positive` are NOT valid hyprexpo options. They cause "Invalid direction" and "Invalid value" parse errors. Remove them entirely.
+20. **`plugin:hyprbars:nobar` in windowrules** — this is not a valid windowrule field. Using it in a `windowrule {}` block causes "config option does not exist" errors. There is no per-window opt-out for hyprbars title bars.
+21. **Plugin config for unbuilt plugins** — if a plugin failed to build during `hyprpm add` (e.g., hyprtrails on newer Hyprland versions), its `plugin {}` block in the config will cause errors. Comment out or remove config for plugins that didn't build.
+22. **Missing hyprpm build dependencies** — `hyprpm update` requires cmake, cpio, pkg-config, git, g++, gcc. On Arch: `sudo pacman -S cmake cpio` (the rest are usually already installed). Without these, `hyprpm update` fails and no plugins can be installed.

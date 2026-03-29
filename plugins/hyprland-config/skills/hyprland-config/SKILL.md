@@ -1,7 +1,7 @@
 ---
 name: hyprland-config
-description: Use this skill whenever the user wants to set up, configure, or modify Hyprland — the Wayland compositor. This includes creating a full Hyprland environment from scratch, modifying an existing config, configuring companion apps (waybar, wofi, kitty, dunst, mako, hyprlock, hypridle, hyprpaper, swww), setting up monitors, keybindings, window rules, animations, decorations, layouts, workspace rules, and generating an install.sh. Trigger whenever the user mentions hyprland.conf, hyprctl, Hyprland settings, ricing, tiling on Wayland, or any Hyprland-specific topic like gaps, borders, blur, or animations. Also trigger when the user pastes a hyprland.conf snippet and asks for help. Always use this skill for any Hyprland-related configuration — even simple questions about a single keybind or option.
-version: 3.1.0
+description: Use this skill whenever the user wants to set up, configure, or modify Hyprland — the Wayland compositor. This includes creating a full Hyprland environment from scratch, modifying an existing config, configuring companion apps (waybar, wofi, rofi, fuzzel, anyrun, kitty, dunst, mako, swaync, hyprlock, hypridle, hyprpaper, swww, wlogout), setting up monitors, keybindings, window rules, animations, decorations, layouts, workspace rules, and generating an install.sh. Trigger whenever the user mentions hyprland.conf, hyprctl, Hyprland settings, ricing, tiling on Wayland, or any Hyprland-specific topic like gaps, borders, blur, or animations. Also trigger when the user pastes a hyprland.conf snippet and asks for help. Always use this skill for any Hyprland-related configuration — even simple questions about a single keybind or option.
+version: 3.2.0
 ---
 
 # Hyprland Configuration Skill
@@ -33,6 +33,10 @@ Load these as needed — not all at once:
 | `references/ricing.md` | Decoration/blur/shadow details, animation presets, smart gaps, special workspaces, hyprlock widgets, swaync/rofi ricing, plugins, common mistakes |
 | `references/theming.md` | GTK/Qt theming, icon themes, cursor consistency, fontconfig, pywal/wallust, ags/hyprpanel |
 | `references/shell.md` | Shell choice (bash/zsh/fish), prompt theming (starship/p10k), plugins, CLI utilities, aliases, color integration |
+| `references/notifications.md` | dunst, mako, swaync — full config format, theming, per-app rules, Hyprland layer rules, waybar integration |
+| `references/launchers.md` | wofi, rofi-wayland, fuzzel, anyrun — full config format, CSS/RASI/INI theming, clipboard integration, Hyprland keybinds |
+| `references/wlogout.md` | wlogout logout menu — layout JSON, CSS theming, custom icons, waybar power button, launch options |
+| `references/swww.md` | swww animated wallpaper daemon — transitions, GIF support, cycling scripts, per-monitor setup, vs hyprpaper comparison |
 
 ---
 
@@ -74,6 +78,7 @@ Read `references/packages.md` now. Work through these groups, batching related q
 - **Bluetooth GUI?** blueman / none?
 - **Display manager?** SDDM / greetd+tuigreet / none (TTY launch)?
 - **Color temperature?** hyprsunset / gammastep / none?
+- **Logout menu?** wlogout (graphical fullscreen overlay) / none (keybind-only)?
 - **Workspace overview plugin?** hyprexpo (macOS Exposé grid) / none?
 - **Starting via uwsm?** (changes where env vars go — see env.conf section)
 
@@ -143,8 +148,9 @@ Produce **modular files** for each component. Use `source =` in `hyprland.conf` 
 hyprpaper.conf / hyprlock.conf / hypridle.conf  (in ~/.config/hypr/ if applicable)
 
 ~/.config/waybar/config.jsonc + style.css
-~/.config/dunst/dunstrc  (or ~/.config/mako/config)
-~/.config/wofi/config + style.css
+~/.config/dunst/dunstrc  (or ~/.config/mako/config  or ~/.config/swaync/{config.json,style.css})
+~/.config/wofi/config + style.css  (or ~/.config/rofi/{config.rasi,themes/}  or ~/.config/fuzzel/fuzzel.ini)
+~/.config/wlogout/layout + style.css  (if using wlogout)
 ~/.config/kitty/kitty.conf
 ~/.config/starship.toml  (if using starship)
 ~/.zshrc / ~/.config/fish/config.fish  (if shell config requested)
@@ -337,14 +343,26 @@ Key rules:
 The bar is one of the most visible parts of a rice — a flat, unstyled bar with plain text labels immediately looks unfinished. The difference between a good and great config is in the CSS: rounded corners, consistent color-coded icons, smooth transitions, and proper spacing.
 
 #### dunst / mako / swaync
-- **dunst**: `dunstrc` with `[global]`, `[urgency_low/normal/critical]`. Match `corner_radius` to hyprland `rounding`.
-- **mako**: `~/.config/mako/config` in plain `key=value` format.
-- **swaync**: `~/.config/swaync/config.json` (behavior) + `~/.config/swaync/style.css` (full CSS). Load `references/ricing.md` for the themed CSS template. Add `layerrule = blur true, match:namespace swaync-control-center` for frosted glass.
+Load `references/notifications.md` for complete config formats, theming examples, and Hyprland integration (layer rules, waybar buttons).
+- **dunst**: `~/.config/dunst/dunstrc` — INI format with `[global]`, `[urgency_low/normal/critical]`, custom `[rule]` sections. Match `corner_radius` to hyprland `rounding`. Colors in `"#RRGGBB"` or `"#RRGGBBAA"` (quotes required).
+- **mako**: `~/.config/mako/config` — key=value format. Criteria sections `[app-name=X]` for per-app styling. Colors in `#RRGGBBAA` (no quotes).
+- **swaync**: `~/.config/swaync/config.json` (behavior + widgets) + `~/.config/swaync/style.css` (full GTK CSS). Most feature-rich — has notification center panel, mpris media controls, buttons grid, DND toggle. Add `layerrule = blur true, match:namespace swaync-control-center` for frosted glass.
 
-#### wofi / rofi / fuzzel
-- **wofi**: `~/.config/wofi/config` + `~/.config/wofi/style.css`. Load `references/ricing.md` for CSS template.
-- **rofi** (requires `rofi-wayland`): `~/.config/rofi/themes/NAME.rasi`. Load `references/ricing.md` for the `.rasi` skeleton.
-- **fuzzel**: `~/.config/fuzzel/fuzzel.ini` — native Wayland blur without layerrules needed.
+Only one notification daemon should run — they conflict on the D-Bus notification interface.
+
+#### wofi / rofi / fuzzel / anyrun
+Load `references/launchers.md` for complete config formats, theming examples, and Hyprland integration (keybinds, layer rules, clipboard history).
+- **wofi**: `~/.config/wofi/config` + `~/.config/wofi/style.css` (GTK CSS). Good enough but unmaintained.
+- **rofi** (requires `rofi-wayland`): `~/.config/rofi/config.rasi` + theme files in RASI format. Most powerful theming — full layout control with CSS-like widget hierarchy. Theme files go in `~/.config/rofi/themes/`.
+- **fuzzel**: `~/.config/fuzzel/fuzzel.ini` — INI format, colors are `RRGGBBAA` (no `#` prefix). Lightest option, no GTK dependency, well-maintained. Theme via config options only.
+- **anyrun**: `~/.config/anyrun/config.ron` (RON format) + `~/.config/anyrun/style.css` (GTK4 CSS). Plugin-based architecture — each search mode is a .so file. Supports calculator, translation, symbols out of the box.
+
+#### wlogout
+Load `references/wlogout.md` for complete layout format, CSS theming, and launch options. Generate if the user chose wlogout in Group D:
+- `~/.config/wlogout/layout` — JSON array of button objects (label, action, text, keybind)
+- `~/.config/wlogout/style.css` — GTK CSS with per-button icon and hover color styling
+- Use `loginctl lock-session` for lock (not `hyprlock` directly), `hyprctl dispatch exit` for logout (or `uwsm stop` if using uwsm)
+- Add a waybar power button module pointing to wlogout
 
 #### kitty
 `kitty.conf` with font, font size, opacity, all 16 terminal colors, cursor style.
@@ -366,8 +384,10 @@ Load `references/hyprlock.md` and `references/ricing.md`. Generate with `backgro
 #### hypridle
 Load `references/hypridle.md`. Generate with `general {}` block (`lock_cmd = loginctl lock-session`, `before_sleep_cmd`) and listeners: dim at ~2.5 min, lock at ~5 min, screen off at ~5.5 min, suspend at ~30 min (optional).
 
-#### hyprpaper
-Load `references/hyprpaper.md`. Use `wallpaper {}` block syntax with `fit_mode = cover`. Add a fallback block with empty monitor. For rotating wallpapers: set `path` to a directory, add `timeout = 300` and `order = random`.
+#### hyprpaper / swww
+If the user chose **hyprpaper**: Load `references/hyprpaper.md`. Use `wallpaper {}` block syntax with `fit_mode = cover`. Add a fallback block with empty monitor. For rotating wallpapers: set `path` to a directory, add `timeout = 300` and `order = random`.
+
+If the user chose **swww**: Load `references/swww.md`. No config file — all options are CLI flags. Generate autostart line (`exec-once = swww-daemon && swww img ~/Pictures/wallpaper.png`), optionally generate a wallpaper cycling script (`~/.config/hypr/scripts/wallpaper-cycle.sh`) and a keybind for random wallpaper. Key selling point: animated transitions (`--transition-type fade/wipe/wave/grow`). Only one wallpaper daemon should run — don't autostart both.
 
 #### GTK / Qt / icon / cursor theming
 Load `references/theming.md`. For a complete rice, generate:
@@ -441,6 +461,8 @@ Generate a robust install script with comprehensive error handling. Tailor the p
 - **`ignorezero` / `ignorealpha`** — removed in Hyprland 0.54+. Do not use these layerrule fields; they cause config errors.
 - **layerrule bool values** — use `true`/`false`, not `on`/`off` (unlike most Hyprland bools, layerrule fields are stricter).
 - **xdg-desktop-portal**: only `xdg-desktop-portal-hyprland` + `xdg-desktop-portal-gtk`; remove `-kde`
+- **Plugin config options**: Plugin options change between versions and invalid options cause parse errors. Only use options documented in `references/ricing.md` — do not guess or invent plugin options. Specifically: hyprexpo has NO gesture-related options (`enable_gesture`, `gesture_fingers`, `gesture_distance`, `gesture_positive` are all invalid); hyprbars has NO per-window `plugin:hyprbars:nobar` windowrule field. If a plugin failed to build, do NOT include its `plugin {}` config block.
+- **hyprpm build dependencies**: hyprpm requires `cmake`, `cpio`, `pkg-config`, `git`, `gcc`. If `hyprpm update` fails with "Missing dependency", install them first (Arch: `sudo pacman -S cmake cpio`).
 
 ---
 
