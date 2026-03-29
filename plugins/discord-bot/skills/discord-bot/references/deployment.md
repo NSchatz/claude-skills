@@ -26,40 +26,58 @@ weight: 5
 # Build stage
 FROM node:20-alpine AS builder
 WORKDIR /app
-RUN corepack enable pnpm
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json package-lock.json ./
 COPY prisma ./prisma/
-RUN pnpm install --frozen-lockfile
-RUN pnpm exec prisma generate
+RUN npm ci
+RUN npx prisma generate
 
 COPY tsconfig.json ./
 COPY src ./src/
-RUN pnpm run build
+RUN npm run build
 
 # Production stage
 FROM node:20-alpine AS production
 WORKDIR /app
-RUN corepack enable pnpm
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json package-lock.json ./
 COPY prisma ./prisma/
-RUN pnpm install --frozen-lockfile --prod
-RUN pnpm exec prisma generate
+RUN npm ci --omit=dev --ignore-scripts
+# Copy generated Prisma client from builder to avoid re-downloading engines
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
+# Copy Prisma CLI for runtime migrations
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder /app/node_modules/@prisma/engines ./node_modules/@prisma/engines
 
 COPY --from=builder /app/dist ./dist/
+COPY docker-entrypoint.sh ./
 
 # Non-root user
 RUN addgroup -g 1001 -S botuser && adduser -S botuser -u 1001
 USER botuser
 
-CMD ["node", "dist/index.js"]
+CMD ["sh", "docker-entrypoint.sh"]
+```
+
+### docker-entrypoint.sh
+
+```sh
+#!/bin/sh
+set -e
+
+# Run pending migrations (safe to run repeatedly — only applies new ones)
+npx prisma migrate deploy
+
+# Start the bot
+exec node dist/index.js
 ```
 
 Key points:
 - Multi-stage build keeps the production image small (no TypeScript, no dev dependencies)
-- `--frozen-lockfile` ensures reproducible builds
-- Prisma client must be generated in both stages (build needs it for type-checking, production needs it for runtime)
+- Prisma client is copied from the builder stage — this avoids a second engine download in the production stage, which is flaky and slow
+- `--ignore-scripts` in the production `npm ci` prevents Prisma's postinstall from trying to download engines (we already copied them)
+- The entrypoint runs `prisma migrate deploy` on every startup, so new migrations are applied automatically when you rebuild the image
 - Non-root user is a security best practice
 - Alpine base for smaller image size
 
@@ -86,13 +104,15 @@ services:
     build: .
     restart: unless-stopped
     env_file: .env
+    environment:
+      - NODE_ENV=production  # Prevents pino-pretty crash (devDependency not in prod image)
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_started
-    volumes:
-      - ./src:/app/src  # Hot reload in dev (with tsx watch)
+    ports:
+      - "3000:3000"  # Health check endpoint
 
   db:
     image: postgres:16-alpine
@@ -226,8 +246,10 @@ sudo journalctl -u discord-bot -f    # View logs
 
 ### .github/workflows/ci.yml
 
+Start with a minimal CI that type-checks the code. Add deploy and test jobs later as needed — don't include jobs that will fail because secrets or test files don't exist yet.
+
 ```yaml
-name: CI/CD
+name: CI
 
 on:
   push:
@@ -240,77 +262,42 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm exec prisma generate
-      - run: pnpm run lint          # tsc --noEmit
-      - run: pnpm run test          # vitest run
-
-  deploy:
-    needs: check
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    steps:
-      - uses: actions/checkout@v4
-
-      # Option A: Deploy to VPS via SSH
-      - name: Deploy to VPS
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            cd /opt/discord-bot
-            git pull origin main
-            pnpm install --frozen-lockfile --prod
-            pnpm exec prisma generate
-            pnpm exec prisma migrate deploy
-            pnpm run build
-            pm2 restart discord-bot
-
-      # Option B: Build and push Docker image
-      # - name: Build and push Docker image
-      #   run: |
-      #     docker build -t ghcr.io/${{ github.repository }}:latest .
-      #     echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-      #     docker push ghcr.io/${{ github.repository }}:latest
-
-      # Option C: Deploy to Railway
-      # - uses: bervProject/railway-deploy@main
-      #   with:
-      #     railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run lint          # tsc --noEmit
 ```
 
-### Slash command deployment in CI
+Only add a deploy job when the user has a remote server configured with secrets. Only add a test job when test files actually exist. Including these prematurely causes CI failures that erode trust in the pipeline.
 
-Register global commands as part of the deploy pipeline:
+### Slash command deployment in CI (optional, add when ready)
+
+Register global commands as part of the deploy pipeline. Only add this job once `DISCORD_TOKEN` and `CLIENT_ID` secrets are configured in the repo settings:
 
 ```yaml
   deploy-commands:
-    needs: deploy
+    needs: check
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm exec prisma generate
-      - run: DEPLOY_GLOBAL=true pnpm run deploy-commands
+          cache: 'npm'
+      - run: npm ci
+      - run: npx prisma generate
+      - run: DEPLOY_GLOBAL=true npm run deploy-commands
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
           CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          DATABASE_URL: "postgresql://unused:unused@localhost:5432/unused"
 ```
 
-Only run command deployment when command files actually change (use `paths` filter or a manual trigger).
+Only run command deployment when command files actually change (use `paths` filter or a manual trigger). The DATABASE_URL is required by the config validator but not used by deploy-commands — provide a dummy value.
 
 ---
 

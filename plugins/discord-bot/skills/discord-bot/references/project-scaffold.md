@@ -58,7 +58,8 @@ my-discord-bot/
 ├── docker-compose.yml
 ├── ecosystem.config.js               # PM2 config (if VPS deployment)
 ├── package.json
-├── pnpm-lock.yaml
+├── docker-entrypoint.sh              # Runs migrations then starts the bot
+├── package-lock.json
 ├── tsconfig.json
 └── README.md
 ```
@@ -129,7 +130,7 @@ For bots needing Redis:
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "declaration": true,
+    "declaration": false,
     "sourceMap": true,
     "lib": ["ES2022"]
   },
@@ -147,10 +148,12 @@ CLIENT_ID=your-application-client-id
 DEV_GUILD_ID=your-test-server-id
 
 # Database (required)
-DATABASE_URL=postgresql://bot:password@localhost:5432/discordbot
+# Use Docker service names (db, redis, lavalink) when running inside Docker Compose.
+# Use localhost when running scripts directly on the host (deploy-commands, prisma migrate).
+DATABASE_URL=postgresql://bot:localdev@db:5432/discordbot
 
 # Redis (optional — needed for cooldowns, cross-shard state)
-REDIS_URL=redis://localhost:6379
+REDIS_URL=redis://redis:6379
 
 # Logging
 LOG_LEVEL=info
@@ -177,7 +180,6 @@ dist/
 .env
 *.db
 *.sqlite
-pnpm-lock.yaml
 prisma/migrations/**/migration_lock.toml
 ```
 
@@ -221,8 +223,8 @@ const envSchema = z.object({
   DISCORD_TOKEN: z.string().min(1, 'DISCORD_TOKEN is required'),
   CLIENT_ID: z.string().min(1, 'CLIENT_ID is required'),
   DEV_GUILD_ID: z.string().optional(),
-  DATABASE_URL: z.string().url('DATABASE_URL must be a valid URL'),
-  REDIS_URL: z.string().url().optional(),
+  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+  REDIS_URL: z.string().optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 });
@@ -359,7 +361,7 @@ client.cooldowns = new Collection();
 const commandsPath = join(__dirname, 'commands');
 for (const folder of readdirSync(commandsPath)) {
   const folderPath = join(commandsPath, folder);
-  for (const file of readdirSync(folderPath).filter(f => f.endsWith('.ts') || f.endsWith('.js'))) {
+  for (const file of readdirSync(folderPath).filter(f => (f.endsWith('.ts') || f.endsWith('.js')) && !f.endsWith('.d.ts') && !f.endsWith('.d.js'))) {
     const { default: command } = await import(pathToFileURL(join(folderPath, file)).href);
     if ('data' in command && 'execute' in command) {
       client.commands.set(command.data.name, command);
@@ -372,7 +374,7 @@ for (const folder of readdirSync(commandsPath)) {
 
 // Load events
 const eventsPath = join(__dirname, 'events');
-for (const file of readdirSync(eventsPath).filter(f => f.endsWith('.ts') || f.endsWith('.js'))) {
+for (const file of readdirSync(eventsPath).filter(f => (f.endsWith('.ts') || f.endsWith('.js')) && !f.endsWith('.d.ts') && !f.endsWith('.d.js'))) {
   const { default: event } = await import(pathToFileURL(join(eventsPath, file)).href);
   if (event.once) {
     client.once(event.name, (...args: unknown[]) => event.execute(...args));
@@ -422,7 +424,7 @@ const commands: unknown[] = [];
 const commandsPath = join(__dirname, 'commands');
 for (const folder of readdirSync(commandsPath)) {
   const folderPath = join(commandsPath, folder);
-  for (const file of readdirSync(folderPath).filter(f => f.endsWith('.ts') || f.endsWith('.js'))) {
+  for (const file of readdirSync(folderPath).filter(f => (f.endsWith('.ts') || f.endsWith('.js')) && !f.endsWith('.d.ts') && !f.endsWith('.d.js'))) {
     const { default: command } = await import(pathToFileURL(join(folderPath, file)).href);
     if ('data' in command) {
       commands.push(command.data.toJSON());

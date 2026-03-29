@@ -22,9 +22,9 @@ You are helping the user create a **complete, production-ready Discord bot** —
 | Deployment | Docker + Docker Compose |
 | Process Manager | PM2 (VPS) or Docker restart policy |
 | CI/CD | GitHub Actions |
-| Package Manager | pnpm |
+| Package Manager | npm (or pnpm if user prefers) |
 
-Use this stack by default. If the user explicitly requests alternatives (JavaScript, discord.py, MongoDB, etc.), adapt — but recommend this stack first and explain why.
+Use this stack by default. If the user explicitly requests alternatives (JavaScript, discord.py, MongoDB, etc.), adapt — but recommend this stack first and explain why. Use npm by default since it ships with Node.js and requires no extra setup — many users (especially beginners) won't have pnpm installed. If the user explicitly prefers pnpm, adapt the Dockerfile, CI, and lockfile accordingly.
 
 ## Reference Files
 
@@ -164,13 +164,13 @@ Before writing any files, present the complete list of files that will be create
 After generating all files, walk the user through:
 
 1. **Bot setup** — Create application at discord.com/developers, get token, enable required intents in the portal
-2. **Environment** — Copy `.env.example` to `.env`, fill in token, client ID, database URL
-3. **Database** — Run `docker compose up -d db` (if using Docker Compose), then `npx prisma migrate dev`
-4. **Deploy commands** — Run `npx tsx src/deploy-commands.ts` to register slash commands
-5. **Start the bot** — `npx tsx src/index.ts` for development, `docker compose up` for production
-6. **Invite the bot** — Provide the OAuth2 URL with the correct permissions and scopes
-
-List exactly which privileged intents need to be enabled in the Developer Portal and why.
+2. **Enable privileged intents** — In the Developer Portal under Bot > Privileged Gateway Intents, enable the intents the bot needs. List exactly which ones and why. The bot will crash with "Used disallowed intents" if these aren't enabled.
+3. **Environment** — Copy `.env.example` to `.env`, fill in token, client ID (Application ID from General Information page), database URL, and DEV_GUILD_ID (right-click server > Copy Server ID with Developer Mode on)
+4. **Docker networking** — If running via Docker Compose, the `.env` hostnames must use Docker service names (`db`, `redis`, `lavalink`) instead of `localhost`. For running scripts locally against Dockerized services (e.g., `deploy-commands.ts`, `prisma migrate dev`), override with `localhost` on the command line: `DATABASE_URL=postgresql://bot:localdev@localhost:5432/discordbot npx prisma migrate dev`
+5. **Database** — Run `docker compose up -d db` (if using Docker Compose), then run the migration from the host with the localhost override
+6. **Deploy commands** — Run `npx tsx src/deploy-commands.ts` with localhost overrides for DB/Redis. The bot must be invited to the DEV_GUILD_ID server first, or this fails with "Missing Access"
+7. **Invite the bot** — Provide the OAuth2 URL with the correct permissions and scopes. The bot must be in the server before deploying guild commands.
+8. **Start the bot** — `npx tsx src/index.ts` for development, `docker compose up` for production
 
 ---
 
