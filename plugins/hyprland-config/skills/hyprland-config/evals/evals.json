@@ -220,6 +220,98 @@
           "text": "waybar network module format includes signal strength ({signalStrength}) for wifi"
         }
       ]
+    },
+    {
+      "id": 7,
+      "prompt": "Full Hyprland setup on Arch. Single 2560x1440 165Hz monitor, desktop (no touchpad/battery). Catppuccin Mocha, kitty, wofi, waybar, dunst, hyprpaper, hyprlock, hypridle. For the shell: I want zsh with starship prompt, syntax highlighting and autosuggestions, plus the modern CLI tools (eza, bat, fd, ripgrep, fzf, zoxide, fastfetch, btop). Set up aliases for all of them. No display manager — I'll launch from TTY.",
+      "expected_output": "A full Hyprland config set plus: a .zshrc with starship init, plugin sourcing (zsh-syntax-highlighting, zsh-autosuggestions), zoxide init, fzf init, and aliases for eza/bat/fd/rg/etc. A starship.toml with Catppuccin Mocha palette. A TTY auto-launch line in .zprofile. install.sh includes zsh, starship, zsh plugins, CLI utilities, and chsh -s /usr/bin/zsh.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "zshrc-generated",
+          "text": "A .zshrc file is generated (not just mentioned)"
+        },
+        {
+          "id": "starship-init-zsh",
+          "text": ".zshrc contains 'eval \"$(starship init zsh)\"' or equivalent starship initialization"
+        },
+        {
+          "id": "zsh-syntax-highlighting",
+          "text": ".zshrc sources zsh-syntax-highlighting plugin"
+        },
+        {
+          "id": "zsh-autosuggestions",
+          "text": ".zshrc sources zsh-autosuggestions plugin"
+        },
+        {
+          "id": "starship-toml",
+          "text": "A starship.toml config file is generated"
+        },
+        {
+          "id": "starship-catppuccin",
+          "text": "starship.toml includes Catppuccin Mocha colors or palette reference"
+        },
+        {
+          "id": "cli-aliases",
+          "text": ".zshrc contains aliases for at least 3 of: eza, bat, fd, ripgrep/rg, zoxide, btop"
+        },
+        {
+          "id": "zoxide-init",
+          "text": ".zshrc contains zoxide initialization (eval \"$(zoxide init zsh)\" or similar)"
+        },
+        {
+          "id": "tty-launch",
+          "text": "A .zprofile is generated with Hyprland TTY auto-launch line"
+        },
+        {
+          "id": "install-sh-shell-packages",
+          "text": "install.sh includes zsh, starship, eza, bat, fd, ripgrep, fzf, zoxide, fastfetch, btop in package list"
+        },
+        {
+          "id": "chsh-in-install",
+          "text": "install.sh includes chsh command to set zsh as default shell"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "I'm setting up Hyprland on Arch with fish shell. I want fish with starship prompt, fisher plugin manager with the fzf plugin, and the usual modern CLI tools (eza, bat, fzf, zoxide). Use Catppuccin Mocha theme everywhere. Kitty terminal, waybar, wofi, dunst. Single 1920x1080 monitor. I use uwsm to start Hyprland.",
+      "expected_output": "A full Hyprland config set plus: a config.fish with starship init, zoxide init, fish abbreviations (not bash aliases) for eza/bat/etc. install.sh includes fish, starship, fisher setup, and CLI tools. Since using uwsm, env vars go in uwsm/env files, not env.conf. No TTY launch line needed (uwsm handles session).",
+      "files": [],
+      "assertions": [
+        {
+          "id": "config-fish-generated",
+          "text": "A config.fish file is generated (at ~/.config/fish/config.fish)"
+        },
+        {
+          "id": "starship-init-fish",
+          "text": "config.fish contains 'starship init fish | source' for prompt initialization"
+        },
+        {
+          "id": "fish-abbreviations",
+          "text": "config.fish uses 'abbr' for tool shortcuts (not bash-style 'alias')"
+        },
+        {
+          "id": "zoxide-fish-init",
+          "text": "config.fish contains 'zoxide init fish | source' for directory jumping"
+        },
+        {
+          "id": "fisher-install",
+          "text": "install.sh or instructions include fisher installation and 'fisher install PatrickF1/fzf.fish'"
+        },
+        {
+          "id": "fish-env-syntax",
+          "text": "Any environment variables in config.fish use Fish syntax (set -gx) not bash export syntax"
+        },
+        {
+          "id": "uwsm-env-files",
+          "text": "Environment variables are placed in uwsm/env files (not env.conf in hyprland config)"
+        },
+        {
+          "id": "install-sh-fish-packages",
+          "text": "install.sh includes fish, starship, eza, bat, fzf, zoxide in package list"
+        }
+      ]
     }
   ]
 }

@@ -32,6 +32,7 @@ Load these as needed — not all at once:
 | `references/waybar.md` | Waybar config.jsonc structure, CSS styling patterns, Hyprland modules, design patterns (floating pill, color-blocked, minimal), custom modules, complete examples |
 | `references/ricing.md` | Decoration/blur/shadow details, animation presets, smart gaps, special workspaces, hyprlock widgets, swaync/rofi ricing, plugins, common mistakes |
 | `references/theming.md` | GTK/Qt theming, icon themes, cursor consistency, fontconfig, pywal/wallust, ags/hyprpanel |
+| `references/shell.md` | Shell choice (bash/zsh/fish), prompt theming (starship/p10k), plugins, CLI utilities, aliases, color integration |
 
 ---
 
@@ -113,6 +114,15 @@ Read `references/packages.md` now. Work through these groups, batching related q
 
 > **Shorthand answers**: If the user says "i3-like", use: SUPER mod, both arrows+hjkl, SUPER+SHIFT+Q to kill, SUPER+Return for terminal, resize submap, 10 workspaces with mouse scroll, bind descriptions on. If they say "defaults" or don't have a preference, use the same i3-like defaults — it's what most Hyprland users expect.
 
+#### Group H — Shell configuration *(ask all at once; user can say "defaults" or "skip")*
+- **Shell:** bash (system default) / zsh (most popular for ricing) / fish (best out-of-box UX) / keep current?
+- **Shell prompt:** starship (cross-shell, fast, recommended) / powerlevel10k (zsh only, wizard-configured) / oh-my-posh / plain default?
+- **Shell plugins?** For zsh: syntax highlighting + autosuggestions + completions (via system packages or zinit)? For fish: fisher + fzf plugin? For bash: ble.sh? Or skip?
+- **Modern CLI utilities?** eza (ls) / bat (cat) / fd (find) / ripgrep (grep) / fzf (fuzzy finder) / zoxide (cd) / fastfetch / btop — install all / pick some / skip?
+- **Shell aliases?** Generate aliases for installed CLI utilities + Hyprland convenience shortcuts? yes/no?
+
+> **Shorthand answers**: If the user says "defaults", use: zsh + starship + system-packaged plugins (syntax highlighting, autosuggestions, completions) + all CLI utilities + aliases. If they say "skip", don't generate any shell config. If they say "fish", use: fish + starship + fisher with fzf plugin + all CLI utilities + fish abbreviations.
+
 ---
 
 ### Step 3: Generate the full config set
@@ -136,6 +146,8 @@ hyprpaper.conf / hyprlock.conf / hypridle.conf  (in ~/.config/hypr/ if applicabl
 ~/.config/dunst/dunstrc  (or ~/.config/mako/config)
 ~/.config/wofi/config + style.css
 ~/.config/kitty/kitty.conf
+~/.config/starship.toml  (if using starship)
+~/.zshrc / ~/.config/fish/config.fish  (if shell config requested)
 install.sh
 ```
 
@@ -355,6 +367,18 @@ Load `references/theming.md`. For a complete rice, generate:
 - For Qt ricing beyond colors: mention Kvantum (`QT_STYLE_OVERRIDE=kvantum`)
 - For font rendering: optionally generate `~/.config/fontconfig/fonts.conf`
 
+#### Shell configuration
+Load `references/shell.md` now. Generate shell config based on Group H answers:
+
+- **Shell rc file**: Generate `.zshrc`, `config.fish`, or additions to `.bashrc` depending on chosen shell. Include: prompt initialization, plugin sourcing, tool initialization (zoxide, fzf), and aliases/abbreviations for installed CLI utilities.
+- **Starship config**: If using starship, generate `~/.config/starship.toml` with a theme-matched palette (e.g., Catppuccin Mocha colors) and Nerd Font symbols. Use the same font the user chose in Group E.
+- **Powerlevel10k**: If using p10k, add the source line to `.zshrc` and tell the user to run `p10k configure` after install — the wizard generates `~/.p10k.zsh` interactively.
+- **Plugin setup**: For zsh with system packages, add `source` lines for syntax highlighting + autosuggestions. For zsh with zinit, generate the zinit block. For fish with fisher, add fisher install commands to `install.sh`.
+- **CLI utilities**: Add initialization lines for zoxide and fzf to the shell rc. Generate aliases (bash/zsh) or abbreviations (fish) only for tools the user chose to install.
+- **TTY launch line**: If the user chose no display manager, add the Hyprland auto-start line to the correct login profile for their shell (`.bash_profile`, `.zprofile`, or `config.fish`). Use uwsm variant if applicable.
+- **Default shell change**: Add `chsh -s /usr/bin/zsh` (or fish) to `install.sh` if the user chose a non-default shell. Include a comment that re-login is required.
+- **Fastfetch**: If installed, optionally add `fastfetch` to the end of the shell rc so it displays system info on terminal launch. Ask the user if they want this — some find it annoying on every new terminal.
+
 #### ags / hyprpanel
 If user chose ags or hyprpanel instead of waybar, load `references/theming.md` for notes. Note that ags requires TypeScript/JS knowledge; hyprpanel is preconfigured with a JSON palette. Provide install instructions but note that full ags config generation is beyond this skill's scope — suggest the user start from an existing ags config and customize it.
 
@@ -532,7 +556,7 @@ misc {
 
 - **SDDM**: enable `sddm.service`; set `DisplayServer=wayland` in `/etc/sddm.conf.d/10-wayland.conf`
 - **greetd + tuigreet**: check for existing DM first (`readlink /etc/systemd/system/display-manager.service`), disable it, then enable `greetd.service`. For uwsm: `command = "tuigreet --time --remember --remember-session --asterisks --cmd 'uwsm start hyprland-uwsm.desktop'"` in `/etc/greetd/config.toml`.
-- **TTY**: add `[[ -z $WAYLAND_DISPLAY && $XDG_VTNR -eq 1 ]] && exec Hyprland` to `~/.bash_profile` or `~/.zprofile`
+- **TTY**: auto-start line depends on the user's shell — see `references/shell.md` TTY Launch Lines section. Bash: `~/.bash_profile`, Zsh: `~/.zprofile`, Fish: `~/.config/fish/config.fish`
 
 ---
 

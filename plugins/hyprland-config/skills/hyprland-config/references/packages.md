@@ -25,6 +25,9 @@ This file covers the common packages used in a Hyprland setup, organized by cate
 - [Screen Recording](#screen-recording)
 - [Auto-mount](#auto-mount)
 - [Polkit Agents](#polkit)
+- [Shells](#shells)
+- [Shell Prompts](#shell-prompts)
+- [Modern CLI Utilities](#modern-cli-utilities)
 
 ---
 
@@ -480,6 +483,68 @@ Arch: `hyprpicker` (AUR or hypr repo)
 
 ---
 
+## Shells
+
+| Name | Notes |
+|------|-------|
+| **bash** | Pre-installed on Arch; POSIX-compatible; universal |
+| **zsh** | Most popular for ricing; huge plugin ecosystem; superior completions |
+| **fish** | Best out-of-box UX; syntax highlighting + suggestions built-in; NOT POSIX-compatible |
+
+**Default recommendation:** `zsh`
+
+Arch: `zsh` / `fish` (bash is pre-installed)
+
+Essential Zsh plugins (available as system packages):
+```bash
+sudo pacman -S zsh-syntax-highlighting zsh-autosuggestions zsh-completions
+```
+
+Fish plugin manager:
+```fish
+curl -sL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source && fisher install jorgebucaran/fisher
+```
+
+---
+
+## Shell Prompts
+
+| Name | Shells | Notes |
+|------|--------|-------|
+| **starship** | bash, zsh, fish | Cross-shell, Rust-based, fast, auto-detects context |
+| **powerlevel10k** | zsh only | Most popular Zsh prompt; instant prompt; interactive wizard |
+| **oh-my-posh** | bash, zsh, fish | Cross-shell, JSON themes; less popular on Linux |
+
+**Default recommendation:** `starship` (works with any shell, minimal config)
+
+Arch: `starship` / `zsh-theme-powerlevel10k` / `oh-my-posh` (AUR)
+
+---
+
+## Modern CLI Utilities
+
+Popular Rust-based replacements for traditional Unix tools. Install all or pick favorites.
+
+| Name | Replaces | Arch package | Notes |
+|------|----------|-------------|-------|
+| **eza** | `ls` | `eza` | Git-aware, icons, tree view |
+| **bat** | `cat` | `bat` | Syntax highlighting, line numbers |
+| **fd** | `find` | `fd` | Simpler syntax, respects .gitignore |
+| **ripgrep** | `grep` | `ripgrep` | Extremely fast, .gitignore aware |
+| **fzf** | — | `fzf` | Fuzzy finder for files/history/processes |
+| **zoxide** | `cd` | `zoxide` | Learning directory jumper |
+| **delta** | `diff` | `git-delta` | Syntax-highlighted git diffs |
+| **dust** | `du` | `dust` | Visual disk usage |
+| **duf** | `df` | `duf` | Colorful disk free |
+| **procs** | `ps` | `procs` | Human-readable process viewer |
+
+Arch (all at once):
+```bash
+sudo pacman -S eza bat fd ripgrep fzf zoxide git-delta dust duf procs
+```
+
+---
+
 ## Quick Reference: Minimum Viable Setup (Arch)
 
 ```bash
@@ -506,6 +571,13 @@ sudo pacman -S nwg-look papirus-icon-theme \
 
 # Utilities
 sudo pacman -S brightnessctl pamixer playerctl pavucontrol udiskie
+
+# Shell + prompt
+sudo pacman -S zsh starship zsh-syntax-highlighting \
+  zsh-autosuggestions zsh-completions
+
+# Modern CLI utilities
+sudo pacman -S eza bat fd ripgrep fzf zoxide fastfetch btop
 
 # Auth agent (AUR or hypr repos)
 yay -S hyprpolkitagent
