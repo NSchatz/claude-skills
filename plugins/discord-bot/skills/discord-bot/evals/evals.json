@@ -140,6 +140,54 @@
           "text": "Output enforces a per-user limit on open tickets"
         }
       ]
+    },
+    {
+      "id": 4,
+      "prompt": "I need a Discord bot for my gaming community (~2000 members) with moderation features (ban, kick, warn, automod) and a leveling system. I also want a web dashboard where server admins can configure automod rules, set level reward roles, view the moderation log, and see member activity stats. I'll host everything with Docker Compose on my VPS. I have a bot token and a test server ready.",
+      "expected_output": "A monorepo project with the bot at apps/bot/, a shared Prisma schema in packages/database/, and invocation of the fullstack-application skill for the dashboard (apps/api/ and apps/web/). The bot should have moderation commands, leveling system, Redis pub/sub listener for config updates, and the dashboard should use Discord OAuth2 instead of Google OAuth. Docker Compose should include bot, api, web, postgres, and redis services.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "has-monorepo-structure",
+          "text": "Output uses a monorepo structure with turbo.json or pnpm-workspace.yaml and separate apps/bot/, apps/api/, apps/web/ directories"
+        },
+        {
+          "id": "has-shared-database-package",
+          "text": "Output includes a packages/database/ directory with a shared Prisma schema used by both the bot and the dashboard API"
+        },
+        {
+          "id": "invokes-fullstack-skill",
+          "text": "Output invokes or references the fullstack-application skill for scaffolding the web dashboard (apps/api and apps/web)"
+        },
+        {
+          "id": "uses-discord-oauth",
+          "text": "Dashboard authentication uses Discord OAuth2 with identify and guilds scopes, not Google OAuth"
+        },
+        {
+          "id": "has-redis-pubsub",
+          "text": "Bot subscribes to a Redis pub/sub channel for config updates from the dashboard"
+        },
+        {
+          "id": "has-guild-permission-check",
+          "text": "Dashboard API checks MANAGE_GUILD permission before allowing config changes"
+        },
+        {
+          "id": "has-combined-docker-compose",
+          "text": "Docker Compose includes services for bot, api, web, postgres, and redis"
+        },
+        {
+          "id": "has-moderation-commands",
+          "text": "Bot includes ban, kick, and warn slash commands with proper permission checks"
+        },
+        {
+          "id": "has-leveling-system",
+          "text": "Bot includes XP tracking in messageCreate and level-up role rewards"
+        },
+        {
+          "id": "has-guild-config-model",
+          "text": "Shared Prisma schema includes a GuildConfig model with fields configurable from the dashboard"
+        }
+      ]
     }
   ]
 }

@@ -1,6 +1,6 @@
 ---
 name: discord-bot
-description: Complete Discord bot project generator and guide. Use this skill whenever the user wants to create a Discord bot, scaffold a Discord bot project, add features to an existing Discord bot, set up slash commands, configure Discord.js, handle Discord events, implement moderation/music/economy/leveling/ticket/utility bot features, set up sharding, deploy a Discord bot, or work with the Discord API in any capacity. Also trigger when the user mentions discord.js, Discord intents, Discord slash commands, Discord components (buttons, select menus, modals), Discord gateway, bot tokens, or any Discord bot development topic. Always use this skill for any Discord bot work — even simple questions about a single command or event handler.
+description: Complete Discord bot project generator and guide. Use this skill whenever the user wants to create a Discord bot, scaffold a Discord bot project, add features to an existing Discord bot, set up slash commands, configure Discord.js, handle Discord events, implement moderation/music/economy/leveling/ticket/utility bot features, set up sharding, deploy a Discord bot, or work with the Discord API in any capacity. Also trigger when the user mentions discord.js, Discord intents, Discord slash commands, Discord components (buttons, select menus, modals), Discord gateway, bot tokens, or any Discord bot development topic. When the user wants a web dashboard or admin panel for their Discord bot, this skill handles the bot side and orchestrates the fullstack-application skill for the web app. Always use this skill for any Discord bot work — even simple questions about a single command or event handler.
 version: 1.0.0
 ---
 
@@ -77,7 +77,10 @@ Ask all relevant questions in a single message, grouped by topic. Wait for the u
 #### Group 2: Features and Scope
 
 - What are the first 3-5 commands you want working?
-- Do you need a web dashboard for server admins to configure the bot?
+- Do you need a web dashboard for server admins to configure the bot? If so:
+  - What should admins be able to configure from the dashboard? (e.g., welcome messages, automod rules, logging channels, role rewards, custom commands)
+  - Should the dashboard show analytics? (e.g., member activity, moderation stats, command usage)
+  - Do you need a public-facing landing page for the bot (features, invite link, documentation)?
 - Do you need any external integrations? (GitHub notifications, Twitch live alerts, YouTube uploads, etc.)
 - Will the bot need voice channel features? (music, voice activity tracking, TTS)
 
@@ -255,3 +258,108 @@ These are patterns that cause real production issues. The generated code must av
 10. **Mass DM on member join** — Many users have DMs disabled. Always handle the error silently.
 11. **Editing messages in a loop** — Hits rate limits (5 edits/5s per channel). Batch updates.
 12. **No graceful shutdown** — Causes dangling connections, incomplete database writes, and reconnection storms.
+
+---
+
+## Combined Bot + Web Dashboard Architecture
+
+When the user wants a web dashboard alongside their Discord bot, this skill handles the **bot** and the **fullstack-application** skill handles the **web application**. Both share the same database and coordinate via Redis pub/sub for real-time config updates.
+
+### When to invoke the fullstack-application skill
+
+Invoke the `fullstack-application` skill when the user answers "yes" to needing a web dashboard. This skill remains the primary orchestrator — it handles the bot, the shared database schema, and the integration points. The fullstack-application skill handles the web app scaffolding, frontend, and API.
+
+### How the two skills work together
+
+```
+┌─────────────────────────────┐     ┌──────────────────────────────┐
+│  Discord Bot (this skill)   │     │  Web Dashboard (fullstack    │
+│  - discord.js v14           │     │  -application skill)         │
+│  - Event handlers           │     │  - React + NestJS            │
+│  - Slash commands            │     │  - Admin UI                  │
+│  - Background tasks         │     │  - Discord OAuth2            │
+└────────────┬────────────────┘     └──────────────┬───────────────┘
+             │                                      │
+             ▼                                      ▼
+      ┌──────────────┐                    ┌──────────────┐
+      │  PostgreSQL   │◄──── shared ─────►│    Redis      │
+      │  (Prisma)     │     database      │  (pub/sub +   │
+      └──────────────┘                    │   cache)      │
+                                          └──────────────┘
+```
+
+### What this skill is responsible for (bot side)
+
+1. **Shared Prisma schema** — The bot owns the database schema. Design `GuildConfig` and all bot-specific models in the bot's `prisma/schema.prisma`. The web app connects to the same database using the same Prisma schema (published as a shared package or imported directly).
+
+2. **Redis pub/sub listener** — The bot subscribes to a `config-update` channel. When the dashboard saves a config change, it publishes to this channel, and the bot invalidates its local cache immediately instead of waiting for a TTL expiry.
+
+   ```ts
+   // In the bot's startup:
+   const subscriber = redis.duplicate();
+   await subscriber.subscribe('config-update');
+   subscriber.on('message', (channel, message) => {
+     const { guildId } = JSON.parse(message);
+     guildConfigCache.delete(guildId);
+     logger.info({ guildId }, 'Config cache invalidated by dashboard');
+   });
+   ```
+
+3. **Bot API endpoints (optional)** — If the dashboard needs data only the bot can provide (e.g., live guild member counts, channel lists, role hierarchies), the bot can expose a lightweight internal HTTP API. This API is **not** public-facing — it's only accessible from the dashboard backend within the same network.
+
+4. **Discord OAuth2 guidance** — The dashboard authenticates users via Discord OAuth2 (`identify` + `guilds` scopes). Read `references/integrations.md` for the OAuth2 flow. The dashboard should filter guilds to those where the user has `MANAGE_GUILD` permission, matching what Discord shows in the bot invite flow.
+
+### What the fullstack-application skill handles (web side)
+
+When invoking the fullstack-application skill for the dashboard, provide it with this context:
+
+- **Auth**: Discord OAuth2 (not Google OAuth) — the user authenticates with their Discord account
+- **Database**: Connects to the same PostgreSQL instance as the bot, using the same Prisma schema
+- **Key pages**: Server selector (list guilds the user manages), per-server config panels, analytics/stats views
+- **Real-time**: Redis pub/sub to notify the bot of config changes; optionally WebSockets to push live bot stats to the dashboard
+- **API design**: RESTful endpoints scoped by guild (`/api/guilds/:id/config`, `/api/guilds/:id/stats`, etc.)
+
+The fullstack-application skill will handle the Turborepo monorepo setup, React frontend, NestJS API, Docker, CI/CD, and all the web-side concerns.
+
+### Monorepo structure for combined projects
+
+When both bot and dashboard exist, the recommended structure is a monorepo:
+
+```
+my-bot/
+├── apps/
+│   ├── bot/              ← Discord bot (this skill generates this)
+│   ├── api/              ← Dashboard backend (fullstack skill generates this)
+│   └── web/              ← Dashboard frontend (fullstack skill generates this)
+├── packages/
+│   ├── database/         ← Shared Prisma schema + client
+│   ├── shared/           ← Shared types, constants, DTOs
+│   └── config/           ← Shared tsconfig, biome config
+├── infrastructure/
+│   ├── docker/
+│   │   ├── bot.Dockerfile
+│   │   ├── api.Dockerfile
+│   │   └── web.Dockerfile
+│   ├── docker-compose.yml       ← All services: bot + api + web + postgres + redis
+│   └── docker-compose.prod.yml
+├── turbo.json
+├── pnpm-workspace.yaml
+└── package.json
+```
+
+The bot lives at `apps/bot/` instead of being the root project. The Prisma schema moves to `packages/database/` so both the bot and the API import from the same source. This is a significant structural difference from a bot-only project — if the user initially creates a bot and later adds a dashboard, the project will need to be restructured into this monorepo layout.
+
+### Workflow when dashboard is requested
+
+1. Complete the bot interview (Step 2) as normal, including the expanded dashboard questions
+2. Generate the bot code (Step 3) as normal, but using the monorepo structure above
+3. Design the shared Prisma schema in `packages/database/` with all models both the bot and dashboard need
+4. **Invoke the fullstack-application skill** to scaffold `apps/api/` and `apps/web/`, telling it:
+   - Project name and description (from the interview)
+   - Auth method: Discord OAuth2 (provide the OAuth2 flow from `references/integrations.md`)
+   - Database: Use the shared `packages/database/` Prisma package — do not create a separate schema
+   - Features: Guild config management, whatever analytics/admin features the user requested
+   - Deployment: Match the bot's deployment choice (Docker Compose, etc.)
+5. Wire up the Redis pub/sub integration between bot and dashboard
+6. Update `docker-compose.yml` to include all services
+7. Present the complete file list and walk through the combined setup

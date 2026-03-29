@@ -474,106 +474,115 @@ async execute(interaction: ChatInputCommandInteraction) {
 
 ## Web Dashboard
 
+For a full web dashboard, the **fullstack-application** skill handles the web app scaffolding (React frontend, NestJS API, Docker, CI/CD). This reference covers the Discord-specific integration points that the dashboard needs regardless of how it's built.
+
 ### Architecture
 
-Dashboard and bot share a database. The dashboard is a separate web application (or embedded HTTP server).
+Bot and dashboard are separate processes sharing a database. The dashboard is a full web application (React + NestJS via the fullstack-application skill), not an embedded HTTP server in the bot.
 
 ```
-Browser → Dashboard (Next.js/Express) → PostgreSQL ← Bot (discord.js)
+Browser → Dashboard (React + NestJS) → PostgreSQL ← Bot (discord.js)
                                         ↕
-                                      Redis (cache invalidation)
+                                      Redis (pub/sub + cache)
 ```
 
 ### Discord OAuth2 flow
 
-```ts
-// Express route for OAuth2
-import express from 'express';
+The dashboard authenticates users via Discord OAuth2 instead of Google OAuth. This replaces the default Passport Google strategy from the fullstack-application skill.
 
-const app = express();
+**Required scopes**: `identify` (user info) + `guilds` (list user's servers)
 
-app.get('/auth/discord', (req, res) => {
-  const params = new URLSearchParams({
-    client_id: config.CLIENT_ID,
-    redirect_uri: config.DASHBOARD_URL + '/auth/callback',
-    response_type: 'code',
-    scope: 'identify guilds',
-  });
-  res.redirect(`https://discord.com/api/oauth2/authorize?${params}`);
-});
-
-app.get('/auth/callback', async (req, res) => {
-  const code = req.query.code as string;
-
-  // Exchange code for token
-  const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: config.CLIENT_ID,
-      client_secret: config.CLIENT_SECRET,
-      grant_type: 'authorization_code',
-      code,
-      redirect_uri: config.DASHBOARD_URL + '/auth/callback',
-    }),
-  });
-
-  const tokens = await tokenResponse.json();
-
-  // Fetch user info
-  const userResponse = await fetch('https://discord.com/api/users/@me', {
-    headers: { Authorization: `Bearer ${tokens.access_token}` },
-  });
-  const user = await userResponse.json();
-
-  // Fetch user's guilds
-  const guildsResponse = await fetch('https://discord.com/api/users/@me/guilds', {
-    headers: { Authorization: `Bearer ${tokens.access_token}` },
-  });
-  const guilds = await guildsResponse.json();
-
-  // Filter to guilds where user has MANAGE_GUILD permission
-  const MANAGE_GUILD = 0x20;
-  const manageable = guilds.filter((g: any) => (g.permissions & MANAGE_GUILD) === MANAGE_GUILD);
-
-  // Create session, set cookie, redirect to dashboard
-  // ...
-});
-```
-
-### Dashboard API endpoints
+**NestJS Passport strategy for Discord OAuth2:**
 
 ```ts
-// GET /api/guilds/:id/config
-app.get('/api/guilds/:id/config', requireAuth, async (req, res) => {
-  const { id } = req.params;
+// apps/api/src/modules/auth/strategies/discord.strategy.ts
+import { Injectable } from '@nestjs/common';
+import { PassportStrategy } from '@nestjs/passport';
+import { Strategy, type Profile } from 'passport-discord';
 
-  // Verify user has MANAGE_GUILD in this guild
-  if (!req.user.guilds.find((g: any) => g.id === id && (g.permissions & 0x20))) {
-    return res.status(403).json({ error: 'Forbidden' });
+@Injectable()
+export class DiscordStrategy extends PassportStrategy(Strategy, 'discord') {
+  constructor(private readonly configService: ConfigService) {
+    super({
+      clientID: configService.get('DISCORD_CLIENT_ID'),
+      clientSecret: configService.get('DISCORD_CLIENT_SECRET'),
+      callbackURL: configService.get('DASHBOARD_URL') + '/auth/discord/callback',
+      scope: ['identify', 'guilds'],
+    });
   }
 
-  const config = await prisma.guildConfig.findUnique({ where: { id } });
-  res.json(config);
-});
-
-// PATCH /api/guilds/:id/config
-app.patch('/api/guilds/:id/config', requireAuth, async (req, res) => {
-  const { id } = req.params;
-  // ... same permission check ...
-
-  const updated = await prisma.guildConfig.update({
-    where: { id },
-    data: req.body,
-  });
-
-  // Invalidate cache so bot picks up changes
-  await redis.del(`config:${id}`);
-  await redis.publish('config-update', JSON.stringify({ guildId: id }));
-
-  res.json(updated);
-});
+  async validate(accessToken: string, refreshToken: string, profile: Profile) {
+    // Store tokens — you'll need the access token to fetch guilds later
+    return {
+      discordId: profile.id,
+      username: profile.username,
+      avatar: profile.avatar,
+      accessToken,
+      guilds: profile.guilds,
+    };
+  }
+}
 ```
+
+**Dependencies:** `passport-discord` + `@types/passport-discord`
+
+### Guild permission filtering
+
+Only show servers where the user has `MANAGE_GUILD` (0x20) permission — this matches what Discord shows in the bot invite flow:
+
+```ts
+const MANAGE_GUILD = 0x20n;
+
+function getManageableGuilds(guilds: DiscordGuild[]) {
+  return guilds.filter(g => (BigInt(g.permissions) & MANAGE_GUILD) === MANAGE_GUILD);
+}
+```
+
+Additionally, filter to guilds where the bot is actually present by cross-referencing with the bot's guild list (query the database or the bot's internal API).
+
+### Dashboard API pattern
+
+All guild-specific endpoints should be scoped under `/api/guilds/:guildId/` and protected by a guard that verifies both authentication and guild-level permissions:
+
+```ts
+// apps/api/src/modules/guilds/guards/guild-permission.guard.ts
+@Injectable()
+export class GuildPermissionGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+    const request = context.switchToHttp().getRequest();
+    const { guildId } = request.params;
+    const userGuilds = request.user.guilds;
+
+    const guild = userGuilds.find((g: any) => g.id === guildId);
+    if (!guild) return false;
+
+    return (BigInt(guild.permissions) & 0x20n) === 0x20n;
+  }
+}
+```
+
+### Config change propagation (Redis pub/sub)
+
+When the dashboard updates a guild's config, it must notify the bot so the bot invalidates its cache immediately:
+
+```ts
+// In the dashboard API service, after saving a config change:
+await this.redis.del(`config:${guildId}`);
+await this.redis.publish('config-update', JSON.stringify({ guildId }));
+```
+
+The bot subscribes to this channel on startup (see SKILL.md "Combined Bot + Web Dashboard Architecture" section).
+
+### Common dashboard features by bot type
+
+| Bot Type | Dashboard Features |
+|----------|--------------------|
+| Moderation | Mod action log viewer, automod rule editor, warning history, banned word list |
+| Leveling | XP multiplier settings, level reward role mapper, leaderboard viewer, rank card customizer |
+| Economy | Shop item editor, economy settings (starting balance, daily amount), transaction log |
+| Tickets | Ticket panel config, canned response editor, transcript viewer, staff performance stats |
+| Welcome | Welcome/goodbye message editor with variable preview, auto-role selector, join/leave analytics |
+| General | Logging channel selector, command toggle per channel, prefix settings, feature flags |
 
 ---
 
