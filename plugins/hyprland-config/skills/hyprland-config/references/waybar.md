@@ -1084,10 +1084,11 @@ window#waybar {
 1. **`sway/workspaces` instead of `hyprland/workspaces`** — the module simply won't appear. No error. Always use `hyprland/` prefix.
 2. **`button.focused` instead of `button.active`** — Sway uses `.focused`, Hyprland uses `.active`. Wrong selector = no active workspace highlighting.
 3. **Missing Nerd Font** — icons show as boxes/tofu. The font family in CSS must match an installed Nerd Font. `fc-list | grep -i nerd` to check.
-4. **`config` instead of `config.jsonc`** — waybar accepts both, but `.jsonc` allows comments. If using plain `config`, it's parsed as JSON (no comments allowed).
-5. **`layer: "bottom"`** — bar renders behind windows and is invisible. Almost always want `"top"`.
-6. **No `exec-once = waybar` in autostart.conf** — bar doesn't launch. Or using `exec =` which spawns duplicates on config reload.
-7. **Huge `font-size` in CSS without adjusting height** — text gets clipped. Either set a larger `height` in config or let it auto-size by omitting `height`.
-8. **`background-color` on `window#waybar` with floating pill style** — must be `transparent` for the pill effect to work. The background goes on `.modules-left/center/right` or individual modules instead.
-9. **Missing `alpha()` for transparency** — `background-color: @base;` is fully opaque. Use `alpha(@base, 0.85)` for the frosted glass look (pair with `layerrule = blur true, match:namespace waybar` in Hyprland config).
-10. **Forgetting `reload_style_on_change: true`** — without this, CSS changes require manually restarting waybar (`killall waybar && waybar &`).
+4. **Stripped Nerd Font glyphs** — icons render as empty spaces (not boxes). This happens when Nerd Font codepoints (U+E000–U+F8FF, U+F0000–U+10FFFF) are silently dropped during copy-paste, file transfer, or encoding conversion. The config appears correct but the format strings contain zero-width or invisible characters where icons should be. Diagnose by checking for non-ASCII characters: `python3 -c "import sys; [print(f'U+{ord(c):04X}', repr(c)) for c in open(sys.argv[1]).read() if ord(c) > 127]" config.jsonc`. If only standard Unicode symbols (em dash, power symbol) appear and no Nerd Font codepoints, the icons were stripped. Fix by re-inserting explicit Nerd Font glyphs. Also prefer `"JetBrainsMono Nerd Font Mono"` over `"JetBrainsMono Nerd Font"` in CSS — the non-Mono variant uses proportional widths for icon glyphs which can cause them to render at zero width in Pango.
+5. **`config` instead of `config.jsonc`** — waybar accepts both, but `.jsonc` allows comments. If using plain `config`, it's parsed as JSON (no comments allowed).
+6. **`layer: "bottom"`** — bar renders behind windows and is invisible. Almost always want `"top"`.
+7. **No `exec-once = waybar` in autostart.conf** — bar doesn't launch. Or using `exec =` which spawns duplicates on config reload.
+8. **Huge `font-size` in CSS without adjusting height** — text gets clipped. Either set a larger `height` in config or let it auto-size by omitting `height`.
+9. **`background-color` on `window#waybar` with floating pill style** — must be `transparent` for the pill effect to work. The background goes on `.modules-left/center/right` or individual modules instead.
+10. **Missing `alpha()` for transparency** — `background-color: @base;` is fully opaque. Use `alpha(@base, 0.85)` for the frosted glass look (pair with `layerrule = blur true, match:namespace waybar` in Hyprland config).
+11. **Forgetting `reload_style_on_change: true`** — without this, CSS changes require manually restarting waybar (`killall waybar && waybar &`).

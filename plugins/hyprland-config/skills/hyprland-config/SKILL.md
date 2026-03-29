@@ -330,7 +330,7 @@ Key rules:
 - Default to the **floating pill bar** style (transparent `window#waybar`, rounded `.modules-left/center/right` containers, `margin-top/left/right` for floating effect) — this is the most popular community pattern and looks significantly more polished than a flat solid bar
 - Include `"reload_style_on_change": true` so users can iterate on CSS without restarting
 - Set `"margin-top": 6, "margin-left": 8, "margin-right": 8` for the floating effect
-- Use Nerd Font icons for every module (not plain text labels)
+- Use Nerd Font icons for every module (not plain text labels). **Nerd Font icon stripping pitfall**: When generating or editing waybar configs, Nerd Font glyphs (U+E000–U+F8FF, U+F0000–U+10FFFF) can silently be stripped or replaced with zero-width characters during copy-paste, file transfer, or encoding issues. If a user reports missing icons but the config looks correct, check the actual Unicode codepoints in the format strings — they may be empty. After writing any waybar config containing Nerd Font icons, verify the icons survived by checking for non-ASCII characters in the file (e.g., `python3 -c "for c in open('config.jsonc').read(): ..."`). If icons are missing, re-insert them using explicit Nerd Font codepoints (e.g., `󰥔` for clock, `󰤨` for wifi, `󰕾` for volume)
 - Add hover effects and state-based styling (battery warning/critical, network disconnected, audio muted)
 - Include a power button module (`custom/power`) with wlogout or a simple menu
 
