@@ -293,7 +293,7 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/myapp"
 # Auth
 GOOGLE_CLIENT_ID=""
 GOOGLE_CLIENT_SECRET=""
-GOOGLE_CALLBACK_URL="http://localhost:3001/auth/google/callback"
+GOOGLE_CALLBACK_URL="http://localhost:3001/api/auth/google/callback"
 JWT_SECRET=""
 JWT_EXPIRES_IN="7d"
 JWT_REFRESH_SECRET=""

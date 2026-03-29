@@ -4,7 +4,9 @@
 
 ### Configuration
 
-Every app and package extends from `packages/config/tsconfig.base.json`:
+Every app and package extends from `packages/config/tsconfig.base.json`.
+
+**Important:** Use relative paths for `extends` — pnpm's strict `node_modules` structure does not resolve workspace package names (e.g. `@myapp/config/tsconfig.base.json`) in tsconfig `extends`. Always use `../../packages/config/tsconfig.base.json` (or the appropriate relative path from the consuming package).
 
 ```json
 // packages/config/tsconfig.base.json
@@ -28,7 +30,7 @@ Every app and package extends from `packages/config/tsconfig.base.json`:
 ```json
 // apps/web/tsconfig.json
 {
-  "extends": "@myapp/config/tsconfig.base.json",
+  "extends": "../../packages/config/tsconfig.base.json",
   "compilerOptions": {
     "target": "ES2020",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
@@ -43,21 +45,29 @@ Every app and package extends from `packages/config/tsconfig.base.json`:
 ```
 
 ```json
-// apps/api/tsconfig.json
+// apps/api/tsconfig.json — note the NestJS-specific overrides
 {
-  "extends": "@myapp/config/tsconfig.base.json",
+  "extends": "../../packages/config/tsconfig.base.json",
   "compilerOptions": {
     "target": "ES2021",
     "module": "CommonJS",
     "moduleResolution": "node",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
+    "strictPropertyInitialization": false,
+    "declaration": false,
+    "declarationMap": false,
     "baseUrl": ".",
     "paths": { "@/*": ["src/*"] }
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist", "test"]
 }
+```
+
+**Why these NestJS overrides matter:**
+- `strictPropertyInitialization: false` — NestJS DTOs use `class-validator` decorators, not constructors, to initialize properties. Without this override, every DTO property triggers a TS error.
+- `declaration: false` + `declarationMap: false` — The API is an app, not a library. When combined with Prisma's generated types, `declaration: true` causes `TS2742: inferred type cannot be named` errors for every service method that returns Prisma types.
 ```
 
 ### Rules

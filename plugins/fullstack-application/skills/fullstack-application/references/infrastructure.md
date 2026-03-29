@@ -4,9 +4,18 @@
 
 Both Dockerfiles use multi-stage builds. Production images contain no dev dependencies, source files, or secrets.
 
+### Choosing the production base image
+
+| Target | API Base Image | Why |
+|--------|---------------|-----|
+| **AWS ECS/EKS** | `gcr.io/distroless/nodejs20-debian12` | Minimal attack surface (~60MB), health checks handled by orchestrator |
+| **Self-hosted Docker Compose** | `node:20-alpine` | Needs shell for `wget` health checks, debugging access |
+
+When using distroless, the container has no shell — `HEALTHCHECK CMD` with shell form won't work, and you can't `docker exec` into it for debugging. For self-hosted deployments where you're managing containers directly, `node:20-alpine` is the practical choice.
+
 ### `infrastructure/docker/api.Dockerfile`
 
-The production stage uses Google's **distroless** image (`gcr.io/distroless/nodejs20-debian12`), which contains only the Node.js runtime — no shell, no package manager, no utilities. This dramatically reduces the attack surface and image size (~60MB vs ~200MB for `node:alpine`).
+The example below uses distroless (for AWS/K8s). For self-hosted Docker Compose, replace the production stage with `node:20-alpine` and add a non-root user.
 
 ```dockerfile
 # ---- Build Stage ----
@@ -124,6 +133,8 @@ server {
 
 ### `infrastructure/docker-compose.yml` (Development)
 
+**Port conflict note:** Port 5432 commonly conflicts with existing PostgreSQL instances or other projects' containers. Before starting, check for conflicts with `ss -tlnp | grep 5432` or `docker ps --filter 'publish=5432'`. If port 5432 is taken, map to a different host port (e.g., `5433:5432`) and update `DATABASE_URL` in `.env` accordingly.
+
 ```yaml
 services:
   postgres:
@@ -133,7 +144,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - '5432:5432'
+      - '5432:5432'  # Change host port if 5432 is already in use
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

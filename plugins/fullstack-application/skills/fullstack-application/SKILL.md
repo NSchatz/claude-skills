@@ -202,14 +202,14 @@ When the user points you at existing code to fix or change:
 Only begin this after completing the interview above. Follow these steps in order.
 
 1. Read `references/project-structure.md` — internalize the full directory tree before writing anything
-2. Generate root-level files: `turbo.json`, `pnpm-workspace.yaml`, `package.json`, `biome.json`, `.env.example`, `.gitignore`
+2. Generate root-level files: `turbo.json`, `pnpm-workspace.yaml`, `package.json`, `biome.json`, `.env.example`, `.gitignore`, `.dockerignore`
 3. Scaffold `packages/config` — shared `tsconfig.base.json`, `biome.base.json`
-4. Scaffold `packages/database` — Prisma schema with base `User` model (and any other models the user identified), `package.json`, `src/index.ts` re-exporting the Prisma client
+4. Scaffold `packages/database` — Prisma schema with base `User` model (and any other models the user identified), `package.json`, `src/index.ts` re-exporting `PrismaClient` and `Prisma` namespace
 5. Scaffold `packages/shared` — empty `types/`, `dtos/`, `constants/` dirs with barrel `index.ts` exports
-6. Scaffold `apps/api` — NestJS app with `AppModule`, `AuthModule` (Passport Google), `HealthModule`, Swagger bootstrap in `main.ts`
+6. Scaffold `apps/api` — NestJS app with `AppModule`, `AuthModule` (Passport Google + `@nestjs/jwt`), `HealthModule`, Swagger bootstrap in `main.ts`. **Read `references/backend.md` "Critical NestJS + pnpm Notes" section** to avoid common compilation failures (tsconfig overrides, CJS imports, ConfigModule envFilePath, Prisma import paths).
 7. Scaffold `apps/web` — Vite React app with RTK store, React Router, Tailwind CSS, base layout component
-8. Generate `infrastructure/docker/web.Dockerfile`, `infrastructure/docker/api.Dockerfile`
-9. Generate `infrastructure/docker-compose.yml` (dev stack with Postgres, Redis, and optionally MinIO for S3) and `infrastructure/docker-compose.prod.yml`
+8. Generate `infrastructure/docker/web.Dockerfile`, `infrastructure/docker/api.Dockerfile`, `infrastructure/docker/nginx.conf`
+9. Generate `infrastructure/docker-compose.yml` (dev stack with Postgres, and optionally Redis and MinIO for S3) and `infrastructure/docker-compose.prod.yml`
 10. Set up security in `apps/api/src/main.ts` — helmet, CORS, global validation pipe, sanitization interceptor, rate limiting. Read `references/security.md`.
 11. Set up observability — Pino logger module, correlation ID middleware, health checks with `@nestjs/terminus`. Read `references/observability.md`.
 12. If Redis is needed: set up `@nestjs/cache-manager` with Redis store and BullMQ queue module. Read `references/caching-and-redis.md` and `references/background-jobs.md`.
@@ -218,6 +218,22 @@ Only begin this after completing the interview above. Follow these steps in orde
 15. If WebSockets are needed: set up Socket.IO gateway with JWT auth. Read `references/websockets.md`.
 16. Generate `.github/workflows/ci.yml`
 17. Present the full list of files to be created and confirm with the user before writing anything
+
+### Post-Scaffold Verification
+
+After writing all files, verify the project compiles before considering the scaffold done:
+
+1. Run `pnpm install` to install all dependencies
+2. Run `pnpm db:generate` to generate the Prisma client
+3. Run `npx tsc --noEmit` in `apps/api` to check for TypeScript errors
+4. Fix any issues before presenting the result to the user
+
+Common post-scaffold issues to watch for:
+- **Missing `@nestjs/jwt`** — the auth module needs it but it's easy to forget in package.json
+- **tsconfig `extends` path** — must use relative paths (`../../packages/config/...`), not workspace package names
+- **NestJS CJS imports** — `helmet`, `cookie-parser` need `require()` not `import from`
+- **ConfigModule `.env` path** — must use `envFilePath: join(__dirname, '..', '..', '..', '.env')` to reach monorepo root
+- **`@nestjs/swagger` version** — must match the NestJS major version (e.g., NestJS 11 needs `@nestjs/swagger@^11`)
 
 ---
 
@@ -252,7 +268,7 @@ These apply to every task, no exceptions:
 - All new modules include at minimum a unit test file
 - Biome passes with zero errors before any code is considered done
 - Environment variables are never hardcoded — always read from `ConfigModule` (backend) or Vite `import.meta.env` (frontend)
-- Dockerfiles are multi-stage; API production image uses distroless, web uses nginx:alpine
+- Dockerfiles are multi-stage; web uses nginx:alpine; API uses distroless for AWS/K8s or node:alpine for self-hosted Docker Compose (see `references/infrastructure.md`)
 - Never run `prisma migrate dev` in CI or production — always use `prisma migrate deploy`
 - Refresh tokens go in HttpOnly cookies only — never in a JSON response body
 - All API errors use the RFC 7807 Problem Details format — never return raw exception messages

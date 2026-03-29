@@ -5,9 +5,30 @@
 - **Framework**: NestJS
 - **ORM**: Prisma
 - **Database**: PostgreSQL
-- **Auth**: Passport.js + Google OAuth 2.0 + JWT refresh tokens
+- **Auth**: Passport.js + Google OAuth 2.0 + JWT refresh tokens (`@nestjs/jwt`)
 - **API Docs**: Swagger / OpenAPI via `@nestjs/swagger`
 - **Validation**: `class-validator` + `class-transformer`
+
+## Critical NestJS + pnpm Notes
+
+These are common issues that cause compilation failures in pnpm monorepos with NestJS:
+
+1. **Always include `@nestjs/jwt` in dependencies** — it's required for `JwtService` and `JwtModule` but easy to forget since auth code references it indirectly.
+
+2. **Use `require()` for CJS middleware packages** — NestJS uses CommonJS modules. Packages like `helmet` and `cookie-parser` don't work with `import X from 'Y'` or `import * as X from 'Y'` in CommonJS mode. Use `const helmet = require('helmet');` instead.
+
+3. **Import Prisma types from the workspace database package** — Use `import type { Prisma } from '@myapp/database'` instead of `import type { Prisma } from '@prisma/client'`. In pnpm's strict node_modules, `@prisma/client` may not resolve correctly from `apps/api`.
+
+4. **ConfigModule needs an explicit `envFilePath`** — When `nest start` runs, the CWD is `apps/api`, not the monorepo root. ConfigModule won't find the root `.env` file. Always set:
+   ```ts
+   ConfigModule.forRoot({
+     isGlobal: true,
+     envFilePath: join(__dirname, '..', '..', '..', '.env'),
+     validationSchema: envValidationSchema,
+   })
+   ```
+
+5. **Version-match `@nestjs/swagger` to your NestJS major** — NestJS 11 requires `@nestjs/swagger@^11.0.0`, not `^8.x`. Mismatched versions cause unmet peer dependency errors.
 - **Language**: TypeScript strict
 
 ---
