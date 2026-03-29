@@ -19,6 +19,11 @@
       "name": "fullstack-standard",
       "description": "Source of truth for all side project full-stack applications: Turborepo + pnpm, React + Redux Toolkit + Tailwind, NestJS + Prisma + PostgreSQL, Docker, GitHub Actions, AWS.",
       "source": "./plugins/fullstack-standard"
+    },
+    {
+      "name": "discord-bot",
+      "description": "Complete Discord bot project generator — scaffolds full working bots with TypeScript, Discord.js v14, Prisma, PostgreSQL, Docker, CI/CD, and advanced features like sharding and dashboards",
+      "source": "./plugins/discord-bot"
     }
   ]
 }

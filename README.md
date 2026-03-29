@@ -25,6 +25,21 @@ Single source of truth for side project full-stack applications. Enforces a cons
 
 Auto-triggers on any side project work — new projects, scaffolding, architecture decisions, CI/CD setup.
 
+### `discord-bot` (v1.0.0)
+Complete Discord bot project generator — scaffolds full, production-ready bots tailored to specific use cases. Default stack:
+
+| Layer | Technology |
+|---|---|
+| Language | TypeScript (strict mode) |
+| Discord Library | discord.js v14 |
+| Framework | Sapphire Framework (medium/large bots) |
+| Database | PostgreSQL + Prisma ORM |
+| Cache | Redis |
+| Deployment | Docker + Docker Compose |
+| CI/CD | GitHub Actions |
+
+Auto-triggers on any Discord bot work — creating bots, slash commands, Discord.js, events, sharding, deployment, or any Discord API topic.
+
 ## Repository Structure
 
 ```
@@ -34,7 +49,8 @@ Auto-triggers on any side project work — new projects, scaffolding, architectu
 plugins/
 ├── template/               # reference template for new skills
 ├── hyprland-config/
-└── fullstack-standard/
+├── fullstack-standard/
+└── discord-bot/
 ```
 
 Each plugin follows this layout:
