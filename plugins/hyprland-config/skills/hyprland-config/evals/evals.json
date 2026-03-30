@@ -444,6 +444,118 @@
           "text": "Output is a standalone fuzzel config (not a full Hyprland setup)"
         }
       ]
+    },
+    {
+      "id": 12,
+      "prompt": "I want a full Hyprland setup on Arch with AGS as my shell instead of waybar. I want AGS to handle the bar, notifications, app launcher, and volume/brightness OSD. Single 2560x1440 165Hz monitor, no touchpad (desktop). Catppuccin Mocha theme, JetBrainsMono Nerd Font. I'm comfortable with TypeScript. Use hyprpaper for wallpaper, hyprlock, hypridle. Kitty terminal. No display manager (TTY launch with uwsm). Zsh + starship. Include all the standard stuff like keybinds, window rules, etc.",
+      "expected_output": "A complete Hyprland setup with AGS as the shell. Should include modular hyprland.conf files, a full AGS project (~/.config/ags/) with app.ts entry point, Bar.tsx, Notifications.tsx, Launcher.tsx, OSD.tsx widget files, style.scss with Catppuccin Mocha colors, hyprlock.conf, hypridle.conf, hyprpaper.conf, kitty.conf, install.sh, zshrc, starship.toml. Autostart should launch AGS (not waybar). Keybinds should use 'ags toggle' for launcher/panels.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "ags-entry-point",
+          "text": "Output includes an AGS app.ts (or app.tsx) entry point file with app.start()"
+        },
+        {
+          "id": "ags-bar-widget",
+          "text": "Output includes a Bar widget/component file (Bar.tsx or similar) with workspaces, clock, tray, and system indicators"
+        },
+        {
+          "id": "ags-notifications",
+          "text": "Output includes a Notifications widget using AstalNotifd (not dunst/mako/swaync)"
+        },
+        {
+          "id": "ags-launcher",
+          "text": "Output includes an app launcher widget using AstalApps with fuzzy_query"
+        },
+        {
+          "id": "ags-osd",
+          "text": "Output includes an OSD widget for volume and/or brightness changes"
+        },
+        {
+          "id": "ags-stylesheet",
+          "text": "Output includes a style.scss or style.css file with Catppuccin Mocha colors"
+        },
+        {
+          "id": "ags-v3-api",
+          "text": "AGS code uses v3 APIs (createState, createBinding, createComputed) — not v1/v2 APIs (Variable, bind, Widget.Box)"
+        },
+        {
+          "id": "ags-autostart",
+          "text": "autostart.conf launches AGS (exec-once = ags run) and does NOT launch waybar or a separate notification daemon"
+        },
+        {
+          "id": "ags-keybinds",
+          "text": "Keybinds include 'ags toggle' commands for launcher or other AGS windows"
+        },
+        {
+          "id": "ags-layerrules",
+          "text": "Hyprland config includes layerrules for AGS window namespaces (blur)"
+        },
+        {
+          "id": "no-waybar",
+          "text": "Output does NOT include waybar config files (config.jsonc or style.css in waybar directory)"
+        },
+        {
+          "id": "install-sh-ags",
+          "text": "install.sh includes aylurs-gtk-shell-git and relevant astal library packages"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "I currently have a full Hyprland + waybar setup. I want to replace just waybar with an AGS bar. Keep everything else (dunst for notifications, wofi for launcher). I want the bar to have: Hyprland workspaces with active/occupied styling, window title, system tray, clock, battery with warning colors, network indicator, volume slider, and a power button that runs wlogout. Tokyo Night color scheme. Floating pill style with rounded corners and transparency. GTK4.",
+      "expected_output": "An AGS bar project with app.ts, a Bar.tsx component containing all requested modules, and style.scss with Tokyo Night colors. Should NOT include notification or launcher widgets since the user is keeping dunst and wofi. Autostart should replace waybar with AGS.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "bar-only",
+          "text": "Output is focused on an AGS bar — does NOT include notification daemon or app launcher widgets"
+        },
+        {
+          "id": "bar-workspaces",
+          "text": "Bar includes Hyprland workspace indicators using AstalHyprland"
+        },
+        {
+          "id": "bar-tray",
+          "text": "Bar includes a system tray using AstalTray"
+        },
+        {
+          "id": "bar-battery",
+          "text": "Bar includes battery indicator using AstalBattery with warning/critical states"
+        },
+        {
+          "id": "bar-volume",
+          "text": "Bar includes volume control using AstalWp (WirePlumber)"
+        },
+        {
+          "id": "bar-network",
+          "text": "Bar includes network indicator using AstalNetwork"
+        },
+        {
+          "id": "bar-clock",
+          "text": "Bar includes a clock (using createPoll or GLib.DateTime)"
+        },
+        {
+          "id": "bar-power-button",
+          "text": "Bar includes a power button that launches wlogout"
+        },
+        {
+          "id": "bar-floating-style",
+          "text": "CSS uses transparent window background with rounded container (floating pill effect)"
+        },
+        {
+          "id": "tokyo-night-colors",
+          "text": "CSS uses Tokyo Night color palette (e.g. #1a1b26 background, #c0caf5 text, or similar)"
+        },
+        {
+          "id": "gtk4-imports",
+          "text": "Code imports from ags/gtk4/app (not ags/gtk3/app)"
+        },
+        {
+          "id": "window-anchoring",
+          "text": "Bar window uses WindowAnchor.TOP | LEFT | RIGHT with EXCLUSIVE exclusivity"
+        }
+      ]
     }
   ]
 }

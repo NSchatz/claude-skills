@@ -255,26 +255,8 @@ For waybar, source the colors file in CSS:
 
 ## ags / hyprpanel
 
-### ags (Aylur's GTK Shell)
+For comprehensive AGS configuration, load `references/ags.md` — it covers the full TypeScript/JSX framework, all Astal libraries, widget types, CSS theming, and complete component examples.
 
-Full JavaScript/TypeScript widget system. Can create bars, overlays, popups, OSD anywhere. Much more powerful than waybar but significantly steeper learning curve.
-
-- Config: `~/.config/ags/config.js` (or `app.ts`)
-- Widgets are JS/TS functions returning GTK widgets
-- Can animate in/out as overlays; reacts to system state with real JS logic
-
-**When to suggest:** If the user wants a highly customized bar with OSD popups, power menu, animated overlays, or per-app widgets — or if they specifically mention ags.
-
-### hyprpanel
-
-Built on ags, designed for Hyprland with minimal setup. Provides bar + notification center + volume/brightness OSD + app launcher in one package.
-
-- Config: `~/.config/hyprpanel/config.json` — single color palette drives everything
-- Much easier than raw ags; less flexible than custom ags
-- OSD popups (volume/brightness bubbles) look significantly more polished than typical waybar
-
-```bash
-# AUR: hyprpanel
-```
-
-**When to suggest:** If the user wants something more polished than waybar without writing JavaScript, or mentions hyprpanel specifically.
+**Quick summary:**
+- **AGS** — Full TypeScript/JSX shell framework. Can replace waybar + notification daemon + launcher + OSD with a single unified codebase. Config: `~/.config/ags/app.ts` + widget `.tsx` files + `style.scss`. Suggest when the user wants a highly customized bar with OSD popups, power menu, animated overlays, per-app widgets, notification center, or app launcher — all in one framework.
+- **HyprPanel** — Pre-built shell for Hyprland built on AGS/Astal. Config: `~/.config/hyprpanel/config.json` — single JSON file drives the entire theme. Suggest when the user wants something more polished than waybar without writing TypeScript. Install: `yay -S hyprpanel`.

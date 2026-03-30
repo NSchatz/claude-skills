@@ -37,6 +37,7 @@ Load these as needed — not all at once:
 | `references/launchers.md` | wofi, rofi-wayland, fuzzel, anyrun — full config format, CSS/RASI/INI theming, clipboard integration, Hyprland keybinds |
 | `references/wlogout.md` | wlogout logout menu — layout JSON, CSS theming, custom icons, waybar power button, launch options |
 | `references/swww.md` | swww animated wallpaper daemon — transitions, GIF support, cycling scripts, per-monitor setup, vs hyprpaper comparison |
+| `references/ags.md` | AGS (Aylur's GTK Shell) — full TypeScript/JSX shell framework: project structure, reactivity, all Astal library APIs, widget types, CSS theming, complete component examples (bar, notifications, launcher, OSD, quick settings, media player, power menu), multi-monitor, HyprPanel |
 
 ---
 
@@ -54,24 +55,52 @@ Load these as needed — not all at once:
 
 ### Step 2: The User Interview (for new setups)
 
-Read `references/packages.md` now. Work through these groups, batching related questions together. If the user's opening message already answers some questions (e.g., "catppuccin mocha, kitty, arch linux"), extract those answers and only ask about what's still missing.
+Read `references/packages.md` now. The interview is the most important part of generating a config that actually fits the user. Rushing through it produces generic configs that feel impersonal. Take the time to understand what the user wants — a few extra questions upfront save them from having to manually fix things later.
+
+**Interview pacing:** Don't dump all groups at once. Present 2-3 groups per message, keeping related topics together. After each batch of answers, acknowledge what they chose and ask the next batch. If an answer is ambiguous or interesting (e.g., they mention a specific workflow), ask a follow-up before moving on. The goal is a conversation, not a form.
+
+If the user's opening message already answers some questions (e.g., "catppuccin mocha, kitty, arch linux"), extract those answers and only ask about what's still missing. But still ask follow-up questions about the things they mentioned — "you said kitty — do you want any specific kitty config (opacity, font size, shell override)?" shows you're paying attention.
 
 #### Group A — System basics
 - **Distro?** (Arch/AUR, Fedora, openSUSE, Debian/Ubuntu, NixOS) — affects package names in install.sh
 - **Starting fresh or have an existing `~/.config/hypr/`?**
+- **Desktop or laptop?** (Affects whether to include battery, backlight, touchpad, lid switch, power profiles)
+- **Primary use case?** (Development, gaming, creative work, general use — helps prioritize window rules and keybinds)
 
-#### Group B — Core tools *(ask all at once)*
+#### Group B — Core tools
 - **Terminal:** kitty / alacritty / foot / wezterm / ghostty / other?
 - **App launcher:** wofi / rofi / fuzzel / tofi / other?
-- **Status bar:** waybar / ags / hyprpanel / other / none?
-- **Notification daemon:** dunst / mako / swaync / other?
+- **Status bar:** waybar (JSON config, easiest) / ags (TypeScript, most powerful — can also replace launcher, notifications, OSD) / hyprpanel (pre-built AGS shell, minimal config) / other / none?
+- **Notification daemon:** dunst / mako / swaync / ags (if using ags as shell, it handles notifications too) / other?
 
-#### Group C — Hypr ecosystem *(ask all at once)*
+**Follow-ups based on answers** (ask these before moving to Group C):
+
+*If waybar:* "What modules do you want in your bar? The standard set is workspaces, window title, clock, tray, volume, network. For laptops: battery and backlight. Any extras — media player, CPU/RAM usage, weather, custom scripts, power button? And where do you want the bar — top or bottom?"
+
+*If ags:* "AGS can handle a lot more than just a bar. Which components do you want it to cover? Bar (workspaces, tray, clock, system indicators), notification popups, notification center/drawer, app launcher, volume/brightness OSD, quick settings panel (WiFi/BT/volume/brightness toggles), media player widget, power menu? The more it handles, the fewer separate tools you need."
+
+*If swaync:* "swaync has a built-in notification center with optional widgets — do you want the mpris media controls widget, a do-not-disturb toggle, volume slider, or buttons grid in the notification panel?"
+
+*Terminal follow-up:* "Any specific terminal preferences? Font size, background opacity, shell override (e.g., launch fish instead of default bash)? Or just use the color scheme defaults?"
+
+*Launcher follow-up:* "Do you want the launcher to also handle clipboard history (SUPER+V to search clipboard)? And do you want it to show only apps, or also calculations / file search / emoji picker?"
+
+#### Group C — Hypr ecosystem
 - **Wallpaper:** hyprpaper (static) / swww (animated) / none?
 - **Screen locker:** hyprlock / swaylock / none?
 - **Idle daemon:** hypridle / swayidle / none?
 
-#### Group D — Additional tools *(ask all at once)*
+**Follow-ups:**
+
+*If hyprpaper:* "Do you have a specific wallpaper in mind, or want a default path? Do you want wallpaper rotation (cycle through a directory on a timer)?"
+
+*If swww:* "What transition style for wallpaper changes? Fade (smooth, subtle), wipe (directional sweep), wave, or grow (radial)? Do you want a wallpaper cycling script with a keybind to shuffle?"
+
+*If hyprlock:* "What do you want on your lock screen? The basics are a clock and password field. Extras: date, profile picture/avatar, a greeting message, battery indicator, song currently playing? Do you want a blurred screenshot of the desktop as background, or a solid color / specific image?"
+
+*If hypridle:* "What idle timeouts feel right? Common setup: dim screen at 2.5 min, lock at 5 min, screen off at 5.5 min, suspend at 30 min. Want to adjust any of those, or disable suspend entirely (common for desktops)?"
+
+#### Group D — Additional tools
 - **File manager:** thunar / nautilus / nemo / yazi / none?
 - **Screenshots:** grim+slurp / grimblast / other?
 - **Clipboard history?** (cliphist + wl-clipboard — yes/no)
@@ -81,28 +110,50 @@ Read `references/packages.md` now. Work through these groups, batching related q
 - **Logout menu?** wlogout (graphical fullscreen overlay) / none (keybind-only)?
 - **Workspace overview plugin?** hyprexpo (macOS Exposé grid) / none?
 - **Starting via uwsm?** (changes where env vars go — see env.conf section)
+- **Screen recording?** obs-studio / wf-recorder / none?
+- **Auto-mount USB drives?** udiskie (yes/no)
+- **Color picker?** hyprpicker (click any pixel to grab its hex code) — yes/no?
 
-#### Group E — Look and feel *(ask all at once)*
+#### Group E — Look and feel
 - **Color scheme:** Catppuccin (Mocha/Macchiato/Frappe/Latte) / Tokyo Night / Gruvbox / Dracula / Nord / Everforest / custom?
 - **Font:** JetBrainsMono Nerd Font / FiraCode Nerd Font / Hack / other? Font size?
 - **Cursor theme:** Bibata-Modern-Classic / Catppuccin / system default?
-- **Monitor(s):** how many, resolution(s), refresh rate(s)?
-- **Keyboard layout?** (default: `us`)
+- **Monitor(s):** how many, resolution(s), refresh rate(s)? Names if known (e.g., DP-1, HDMI-A-1)?
+- **Keyboard layout?** (default: `us`) — multiple layouts with toggle?
 - **Touchpad?** (yes/no — affects input config)
+- **Tiling layout:** dwindle (default, most popular) / master (one large + stack) / preference?
 
-#### Group F — Visual style *(ask all at once; user can say "all defaults")*
+**Follow-ups for monitors** (if multi-monitor): "Which monitor is primary? How are they arranged — side by side, stacked? Do you want specific workspaces assigned to specific monitors (e.g., 1-5 on left, 6-10 on right)?"
+
+**Follow-ups for touchpad** (if yes): "Do you want tap-to-click? Natural scrolling (reverse direction, like phone)? Disable touchpad while typing? These are common preferences that vary a lot between users."
+
+**Follow-ups for input**: "Do you want mouse acceleration or flat input (1:1 movement, preferred by gamers)? Any specific scroll speed or sensitivity preferences?"
+
+#### Group F — Visual style *(user can say "all defaults" to skip details)*
 - **Bar style:** floating pills (rounded modules floating above desktop — most popular) / solid bar (traditional flat bar) / color-blocked (each module gets its own bold color) / minimal (subtle, icon-only)? *Default: floating pills*
+- **Bar position:** top / bottom? *Default: top*
 - **Gaps:** inner (between windows) / outer (from screen edge)? *Common: 8/16 or 10/20; default: 5/20*
 - **Border size:** pixels? *Rices commonly use 2–3; default: 1*
+- **Border color:** solid color, gradient (two colors + angle), or rainbow? *Gradient borders are the highest-impact single visual setting.*
 - **Corner rounding:** radius in px? *Rices commonly use 8–12; default: 0*
-- **Blur:** disabled / subtle / moderate / heavy?
-- **Shadows:** yes / no?
+- **Blur:** disabled / subtle / moderate / heavy? Apply to bar/launcher too (layer blur)?
+- **Shadows:** yes / no? Subtle or dramatic?
 - **Window opacity:** fully opaque, or transparent inactive windows? *e.g. active 1.0, inactive 0.85*
-- **Animation style:** minimal / balanced / fancy?
+- **Animation style:** minimal (quick, snappy) / balanced (smooth, moderate) / fancy (bouncy, dramatic)?
 - **Smart gaps?** (no gaps when only one window on workspace — very popular in rices) yes/no?
-- **Special workspaces?** (toggle-able scratchpad overlays) yes/no? How many, and what for (terminal, notes, etc.)?
+- **Special workspaces?** (toggle-able scratchpad overlays) yes/no? How many, and what for (terminal, notes, music player, etc.)?
+- **Dim inactive windows?** (slightly darken windows that aren't focused) yes/no?
 
-#### Group G — Keybind preferences *(ask all at once; user can say "defaults" or "i3-like")*
+#### Group F2 — Window behavior and app rules *(ask after visual style)*
+- **Window swallowing?** (terminal hides when you launch a GUI app from it, reappears when app closes) — yes/no? *Popular but can confuse some users.*
+- **Commonly used apps?** "Which apps do you use daily? (e.g., Firefox, Discord, Spotify, Steam, VS Code, Slack, file manager) — I'll set up smart window rules for them (floating dialogs, workspace assignments, opacity overrides for media)."
+- **Workspace assignments?** "Want specific apps to always open on certain workspaces? Common: browser on 2, code editor on 3, Discord/Slack on 4, Spotify on 5, Steam on 6."
+- **Floating windows?** "Any apps you always want floating instead of tiled? Common: calculator, color picker, settings dialogs, password managers."
+- **XWayland?** "Do you run any X11-only apps (some games, older apps)? If so I'll make sure XWayland is configured properly. Any HiDPI scaling concerns?"
+
+These questions help generate window rules that match the user's actual workflow rather than generic defaults. A developer who uses VS Code + Firefox all day needs different rules than a gamer who runs Steam + Discord.
+
+#### Group G — Keybind preferences *(user can say "defaults" or "i3-like")*
 - **Keybind style?** i3/sway-like (most common) / vim-centric (hjkl everything) / Windows/GNOME-familiar / custom?
   - *i3-like*: SUPER+Return=terminal, SUPER+D=launcher, SUPER+SHIFT+Q=kill, SUPER+1-0=workspaces — the community standard
   - *vim-centric*: hjkl for all directional actions, minimal arrow key use, resize/launch submaps
@@ -127,6 +178,26 @@ Read `references/packages.md` now. Work through these groups, batching related q
 - **Shell aliases?** Generate aliases for installed CLI utilities + Hyprland convenience shortcuts? yes/no?
 
 > **Shorthand answers**: If the user says "defaults", use: zsh + starship + system-packaged plugins (syntax highlighting, autosuggestions, completions) + all CLI utilities + aliases. If they say "skip", don't generate any shell config. If they say "fish", use: fish + starship + fisher with fzf plugin + all CLI utilities + fish abbreviations.
+
+#### Pre-generation confirmation
+
+Before generating anything, summarize the choices back to the user in a compact list. This catches misunderstandings early and makes the user feel heard. Something like:
+
+> Here's what I've got:
+> - **System:** Arch, laptop, fresh install
+> - **Core:** kitty, wofi, waybar (floating pills, top), dunst
+> - **Hypr tools:** hyprpaper (static), hyprlock (clock + blur bg), hypridle (lock at 5min, suspend at 30min)
+> - **Extras:** thunar, grim+slurp, cliphist, blueman, wlogout, uwsm, no DM
+> - **Theme:** Catppuccin Mocha, JetBrainsMono NF 11pt, Bibata cursor
+> - **Visual:** 8/20 gaps, 2px border, 10px rounding, moderate blur, shadows, 0.85 inactive opacity, balanced animations, smart gaps
+> - **Input:** touchpad (tap-to-click, natural scroll), us layout, flat mouse input
+> - **Apps:** Firefox on ws2, VS Code on ws3, Discord on ws4, Steam floating
+> - **Keybinds:** i3-like, SUPER mod, both arrows+hjkl, resize submap
+> - **Shell:** zsh + starship + all CLI tools
+>
+> Anything you'd like to change before I generate?
+
+Wait for confirmation. If they say "looks good" or similar, proceed. If they correct something, update and re-confirm if the change was significant.
 
 ---
 
@@ -410,8 +481,54 @@ Load `references/shell.md` now. Generate shell config based on Group H answers:
 - **Default shell change**: Add `chsh -s /usr/bin/zsh` (or fish) to `install.sh` if the user chose a non-default shell. Include a comment that re-login is required.
 - **Fastfetch**: If installed, optionally add `fastfetch` to the end of the shell rc so it displays system info on terminal launch. Ask the user if they want this — some find it annoying on every new terminal.
 
-#### ags / hyprpanel
-If user chose ags or hyprpanel instead of waybar, load `references/theming.md` for notes. Note that ags requires TypeScript/JS knowledge; hyprpanel is preconfigured with a JSON palette. Provide install instructions but note that full ags config generation is beyond this skill's scope — suggest the user start from an existing ags config and customize it.
+#### ags (Aylur's GTK Shell)
+If the user chose ags as their bar/shell, load `references/ags.md` now. AGS replaces multiple companion apps at once — it can serve as bar, notification daemon, app launcher, OSD, and more in a single TypeScript codebase.
+
+Generate a complete AGS project:
+1. **`~/.config/ags/app.ts`** — entry point with `app.start()`, imports all widget files, loads CSS
+2. **Widget files** — one `.tsx` per component the user wants. A typical full setup: `Bar.tsx`, `Notifications.tsx`, `Launcher.tsx`, `OSD.tsx`, `QuickSettings.tsx`, `MediaPlayer.tsx`, `PowerMenu.tsx`
+3. **`~/.config/ags/style.scss`** — SCSS with the user's color palette (Catppuccin/Tokyo Night/etc.), matching the same palette used in hyprlock and other Hyprland configs
+4. **`tsconfig.json`** — include `"experimentalDecorators": false`, `"target": "ES2020"` if using GObject decorators
+
+Key generation rules:
+- Use AGS v3 APIs only: `createState`, `createBinding`, `createComputed`, `createEffect`, `createPoll`. Never use v1/v2 APIs (`Variable`, `bind()`, `Widget.Box`, `astalify`, `App.config`)
+- Import from `"ags/gtk4/app"`, `"ags"`, `"ags/time"`, `"ags/process"`, `"gi://AstalXxx"`
+- Every window needs `visible` set explicitly (GTK4 windows are invisible by default)
+- Set `namespace` on windows so Hyprland layerrules can target them
+- Use `exclusivity={Astal.Exclusivity.EXCLUSIVE}` for bars (reserves screen space)
+- Popup windows (launcher, quick settings, power menu) should use `application={app}` and `name="xxx"` so `ags toggle xxx` works from keybinds
+- The notification daemon is exclusive — if AGS handles notifications via AstalNotifd, don't also start dunst/mako/swaync
+
+When AGS is the bar, skip generating waybar config. When AGS handles notifications, skip dunst/mako/swaync. When AGS includes a launcher, skip wofi/rofi/fuzzel. Adjust autostart.conf accordingly:
+```ini
+exec-once = ags run ~/.config/ags/app.ts
+# No waybar, no dunst, no wofi — AGS handles all of these
+```
+
+Add Hyprland keybinds for toggling AGS windows:
+```ini
+bindd = $mainMod, D, Open launcher, exec, ags toggle launcher
+bindd = $mainMod, A, Quick settings, exec, ags toggle quicksettings
+bindd = $mainMod, Escape, Power menu, exec, ags toggle powermenu
+```
+
+Add layerrules for AGS window namespaces:
+```ini
+layerrule = blur true, match:namespace bar
+layerrule = blur true, match:namespace launcher
+layerrule = blur true, match:namespace quicksettings
+layerrule = blur true, match:namespace notifications
+layerrule = blur true, match:namespace osd
+```
+
+#### hyprpanel
+If the user chose hyprpanel (the out-of-box AGS-based panel), it's much simpler — one JSON config drives everything:
+- Config: `~/.config/hyprpanel/config.json` — set the color palette and it propagates everywhere
+- Includes bar + notification center + volume/brightness OSD + app launcher
+- Much easier than raw AGS but less flexible
+- Install: `yay -S hyprpanel`
+- Autostart: `exec-once = hyprpanel`
+- Don't also start waybar, dunst, or wofi — hyprpanel replaces them all
 
 ---
 

@@ -450,15 +450,34 @@ Arch: `fastfetch btop`
 
 ---
 
-## Extended Status Bar Options
+## Extended Status Bar / Shell Options
 
-Beyond waybar, for advanced users:
+Beyond waybar, for users who want more than a status bar:
 
-| Package | Notes |
-|---------|-------|
-| **eww** | Declarative widget system in Rust/Yuck DSL; maximum flexibility |
-| **ags** (Aylur's GTK Shell) | JavaScript/TypeScript widget system; scriptable |
-| **hyprpanel** | Waybar-compatible panel built on ags, designed for Hyprland |
+| Package | Notes | Arch |
+|---------|-------|------|
+| **ags** (Aylur's GTK Shell) | TypeScript/JSX shell framework — bar, notifications, launcher, OSD, quick settings, power menu in one codebase. Uses Astal libraries for system integration. Most powerful option but requires TypeScript knowledge. | `aylurs-gtk-shell-git` (AUR) |
+| **hyprpanel** | Pre-built shell for Hyprland built on AGS/Astal. Bar + notification center + OSD + launcher with minimal JSON config. Easier than raw AGS. | `hyprpanel` (AUR) |
+| **eww** | Declarative widget system in Rust/Yuck DSL; maximum flexibility | `eww` (AUR) |
+
+**AGS Astal library packages** (install what you need — `aylurs-gtk-shell-git` pulls core deps):
+
+| Package | Purpose | Arch |
+|---------|---------|------|
+| `astal-battery-git` | Battery monitoring (UPower) | AUR |
+| `astal-bluetooth-git` | Bluetooth control (BlueZ) | AUR |
+| `astal-hyprland-git` | Hyprland IPC (workspaces, clients, monitors) | AUR |
+| `astal-mpris-git` | Media player control (replaces playerctl) | AUR |
+| `astal-network-git` | NetworkManager WiFi/wired | AUR |
+| `astal-notifd-git` | Notification daemon (replaces dunst/mako/swaync) | AUR |
+| `astal-tray-git` | System tray | AUR |
+| `astal-wireplumber-git` | Audio control via PipeWire (replaces pamixer/wpctl) | AUR |
+| `astal-apps-git` | Application launcher queries | AUR |
+| `astal-power-profiles-git` | Power profile switching | AUR |
+| `astal-auth-git` | PAM authentication (for lock screens) | AUR |
+| `astal-cava-git` | Audio visualization | AUR |
+
+When the user chooses AGS, many standalone tools become optional — AGS with Astal libraries replaces waybar, dunst/mako/swaync, wofi/rofi/fuzzel, pamixer, and playerctl.
 
 ---
 
