@@ -296,6 +296,17 @@ eval "$(zoxide init zsh)"
 zoxide init fish | source
 ```
 
+**Replacing `cd` with zoxide**: Use the `--cmd cd` flag to make zoxide register as `cd` directly, with full shell completions:
+```bash
+# Bash
+eval "$(zoxide init bash --cmd cd)"
+# Zsh
+eval "$(zoxide init zsh --cmd cd)"
+# Fish
+zoxide init fish --cmd cd | source
+```
+This also creates `cdi` for interactive fuzzy selection via fzf. **Do NOT use `alias cd=z` or `abbr -a cd z`** — these break autosuggestions and tab completions because `z` is a shell function, not a standalone command with completions wired up.
+
 **fzf** (add to rc file):
 ```bash
 # Bash

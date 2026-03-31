@@ -52,19 +52,22 @@ This reference covers AGS v3 (current), which uses the Gnim reactivity system an
 yay -S aylurs-gtk-shell-git
 ```
 
-This pulls in astal libraries as dependencies. For individual Astal libraries:
-```bash
-# Core (required)
-yay -S astal-io-git astal3-git astal4-git
+This pulls in core astal libraries as dependencies, but NOT the service libraries. You must install each service library separately.
 
-# System libraries (install what you need)
-yay -S astal-battery-git astal-bluetooth-git astal-hyprland-git
-yay -S astal-mpris-git astal-network-git astal-notifd-git
-yay -S astal-tray-git astal-wireplumber-git astal-apps-git
-yay -S astal-power-profiles-git astal-auth-git astal-cava-git
+> **CRITICAL: Package names are `libastal-*-git`, NOT `astal-*-git`.** The `astal-*-git` names do not exist in AUR. Getting this wrong means AGS will crash with "Typelib file for namespace 'AstalXxx' not found".
+
+```bash
+# Core (required) — pulled in by aylurs-gtk-shell-git
+yay -S libastal-io-git libastal-git libastal-4-git
+
+# Service libraries (install what you need — NOT pulled in automatically)
+yay -S libastal-battery-git libastal-bluetooth-git libastal-hyprland-git
+yay -S libastal-mpris-git libastal-network-git libastal-notifd-git
+yay -S libastal-tray-git libastal-wireplumber-git libastal-apps-git
+yay -S libastal-powerprofiles-git libastal-auth-git libastal-cava-git
 ```
 
-**Additional build dependencies:** `npm`, `meson`, `ninja`, `go`, `gobject-introspection`, `gtk3`, `gtk4`, `gtk-layer-shell`, `gtk4-layer-shell`
+**Additional build dependencies:** `dart-sass` (required for SCSS compilation — AGS will fail with "executable sass not found" without it), `npm`, `meson`, `ninja`, `go`, `gobject-introspection`, `gtk3`, `gtk4`, `gtk-layer-shell`, `gtk4-layer-shell`
 
 **Nix:**
 ```bash
@@ -102,8 +105,10 @@ When generating an AGS config, create all files the user needs. A minimal setup 
 
 Every AGS project starts with `app.start()`:
 
+> **CRITICAL: `app` is a default export**, not a named export. Use `import app from "ags/gtk4/app"`, NOT `import { App } from "ags/gtk4/app"`. This is the #1 import mistake.
+
 ```typescript
-import app from "ags/gtk4/app"
+import app from "ags/gtk4/app"  // DEFAULT import — not { App }
 import style from "./style.scss"
 import Bar from "./widget/Bar"
 import NotificationPopups from "./widget/Notifications"
@@ -114,23 +119,26 @@ app.start({
         Bar()
         NotificationPopups()
     },
-    requestHandler(argv, res) {
-        // Handle CLI requests: ags request "toggle-launcher"
-        if (argv[0] === "toggle-launcher") {
-            // toggle launcher window
+    // NOTE: requestHandler receives string[] (array), not a single string
+    requestHandler(argv: string[], res: (response: string) => void) {
+        if (argv[0] === "toggle") {
+            const win = app.get_window(argv[1])
+            if (win) { win.visible = !win.visible; res("ok") }
+            else res(`window "${argv[1]}" not found`)
+        } else {
+            res("unknown command")
         }
-        res("ok")
     },
 })
 ```
 
 **Key options:**
-- `css` — imported CSS/SCSS string
+- `css` — imported CSS/SCSS string (requires `dart-sass` installed for .scss)
 - `main()` — instantiate all windows here
 - `instanceName` — DBus name suffix (default: "astal")
 - `icons` — path to custom icon directory
-- `gtkTheme` — lock to specific GTK theme
-- `requestHandler(argv, res)` — handle `ags request <message>` from CLI/keybinds
+- `gtkTheme` — lock to specific GTK theme (e.g., `"Adwaita"`, `"adw-gtk3-dark"`)
+- `requestHandler(argv: string[], res)` — handle `ags request <message>` from CLI/keybinds. **`argv` is a string array**, not a single string — do NOT call `.trim()` or `.split()` on it
 
 ---
 
@@ -175,7 +183,9 @@ setCount(prev => prev + 1) // set with updater function
 
 ### createBinding — Bind to GObject properties
 
-This is the primary way to connect Astal library data to widgets:
+This is the primary way to connect Astal library data to widgets. It takes a **GObject instance** and a **property name string** — nothing else.
+
+> **CRITICAL: Do NOT wrap createComputed in createBinding.** `createBinding(createComputed(...))` is WRONG and causes "str is undefined" errors. `createBinding` is ONLY for GObject property bindings. `createComputed` already returns a reactive value usable directly in JSX.
 
 ```typescript
 import { createBinding } from "ags"
@@ -185,17 +195,29 @@ const battery = Battery.get_default()
 const percentage = createBinding(battery, "percentage")
 
 // Use in JSX — auto-updates when battery changes
+// The transform function is chained with (), not a separate call
 <label label={percentage(p => `${Math.floor(p * 100)}%`)} />
+
+// WRONG — never do this:
+// <label label={createBinding(createComputed(() => someValue()))} />
+// RIGHT — use createComputed directly:
+// <label label={createComputed(() => someValue())} />
 ```
 
 ### createComputed — Derived values
+
+`createComputed` returns a reactive value that can be used directly in JSX props — no need to wrap it in `createBinding`.
 
 ```typescript
 import { createComputed } from "ags"
 
 const doubled = createComputed(() => count() * 2)
 
-// Shorthand: transform an accessor directly
+// Use directly in JSX — this is reactive:
+<label label={createComputed(() => `Count: ${count()}`)} />
+<box class={createComputed(() => active() ? "active" : "inactive")} />
+
+// Shorthand: transform a binding directly
 const label = percentage(p => `${Math.floor(p * 100)}%`)
 ```
 
@@ -247,11 +269,17 @@ Lowercase JSX tags are intrinsic GTK widgets. Uppercase are custom components (p
 
 ### GTK4 Intrinsic Widgets
 
+> **CRITICAL GTK4 differences from GTK3:**
+> - `box` does NOT have a `vertical` boolean prop. Use `orientation={Gtk.Orientation.VERTICAL}` instead. Using `vertical` causes "No property vertical on GtkBox" error.
+> - Use `class="my-class"` (string) for CSS classes, NOT `cssClasses={["my-class"]}` (array). AGS's JSX system only handles the `class` prop — `cssClasses` bypasses it and won't work for reactive updates.
+> - Use `$` for ref callbacks, NOT `setup`. The `setup` prop does not exist.
+> - `centerbox` children MUST have `$type="start"`, `$type="center"`, `$type="end"` props, or the centerbox layout will be broken (1px tall bar).
+
 | Tag | GTK Class | Key Props |
 |-----|-----------|-----------|
-| `box` | Gtk.Box | `vertical`, `spacing`, `homogeneous`, `children` |
+| `box` | Gtk.Box | `orientation={Gtk.Orientation.VERTICAL}`, `spacing`, `homogeneous` |
 | `button` | Gtk.Button | `onClicked`, `child`, `label` |
-| `centerbox` | Gtk.CenterBox | children with `$type="start"/"center"/"end"` |
+| `centerbox` | Gtk.CenterBox | children **MUST** have `$type="start"/"center"/"end"` |
 | `entry` | Gtk.Entry | `placeholderText`, `onNotifyText`, `text` |
 | `image` | Gtk.Image | `iconName`, `file`, `pixelSize`, `gicon` |
 | `label` | Gtk.Label | `label`, `useMarkup`, `wrap`, `ellipsize` |
@@ -603,6 +631,43 @@ window > box {
 }
 ```
 
+### Global CSS Reset (Required for GTK4)
+
+GTK4's default Adwaita theme applies white backgrounds, borders, and shadows to buttons and other widgets. Without a global reset, your bar will have white button backgrounds. **Always include this reset at the top of your SCSS:**
+
+```scss
+* {
+  font-family: "YourFont", monospace;
+  font-size: 14px;
+  color: $text;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  text-shadow: none;
+  -gtk-icon-shadow: none;
+  min-height: 0;
+  min-width: 0;
+}
+
+button {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  &:hover { background: transparent; }
+  &:active { background: transparent; }
+  &:checked { background: transparent; }
+}
+
+menubutton {
+  background: transparent;
+  border: none;
+  > button { background: transparent; border: none; padding: 2px; }
+}
+```
+
+Then apply specific backgrounds to your containers (bar, notifications, etc.) below the reset. Without this, every button and menubutton in your bar will show the default GTK theme styling.
+
 ### Debugging CSS
 
 Run `ags inspect` to open the GTK Inspector — lets you see the widget tree, test CSS live, and find class names.
@@ -612,6 +677,33 @@ Run `ags inspect` to open the GTK Inspector — lets you see the widget tree, te
 ## Astal Libraries
 
 All libraries use GObject Introspection. Import with `gi://AstalXxx`. Most provide a singleton via `get_default()`.
+
+> **CRITICAL: Astal service libraries use NO version string in imports.** Only core GTK/Astal bindings need versions.
+>
+> **Correct:**
+> ```typescript
+> import AstalBattery from "gi://AstalBattery"        // NO version
+> import AstalTray from "gi://AstalTray"              // NO version
+> import AstalWp from "gi://AstalWp"                  // NO version
+> import AstalNetwork from "gi://AstalNetwork"        // NO version
+> import AstalMpris from "gi://AstalMpris"            // NO version
+> import AstalNotifd from "gi://AstalNotifd"          // NO version
+> import AstalHyprland from "gi://AstalHyprland"      // NO version
+> import AstalApps from "gi://AstalApps"              // NO version
+> import AstalBluetooth from "gi://AstalBluetooth"    // NO version
+> ```
+>
+> **Core bindings that DO need versions:**
+> ```typescript
+> import Astal from "gi://Astal?version=4.0"          // version required
+> import Gtk from "gi://Gtk?version=4.0"              // version required
+> import Gdk from "gi://Gdk?version=4.0"              // version required
+> import GLib from "gi://GLib"                         // no version needed
+> ```
+>
+> **WRONG:** `import AstalTray from "gi://AstalTray?version=0.1"` — causes "Typelib file not found" errors.
+>
+> **Also note:** `AstalTray.get_default()` not `AstalTray.Tray.get_default()`. Same for all other services — the module IS the class.
 
 ### Battery (AstalBattery)
 
@@ -1515,3 +1607,49 @@ Autostart:
 ```ini
 exec-once = hyprpanel
 ```
+
+---
+
+## AGS Common Mistakes (Verified from Real Debugging)
+
+These are real bugs encountered when generating AGS configs. Each one caused actual runtime failures. Read this section before generating any AGS code.
+
+### Import Mistakes
+
+1. **Named import of app**: `import { App } from "ags/gtk4/app"` is WRONG. The app is a **default export**: `import app from "ags/gtk4/app"`. Then use `app.start()`, `app.toggle_window()`, `app.get_window()`, and pass `application={app}` in JSX.
+
+2. **Version strings on Astal services**: `import AstalTray from "gi://AstalTray?version=0.1"` is WRONG. Astal service libraries use NO version string: `import AstalTray from "gi://AstalTray"`. Only `Astal`, `Gtk`, and `Gdk` need `?version=4.0`.
+
+3. **createPoll import location**: `createPoll` is in `"ags/time"`, NOT in `"ags"`. Similarly, `exec`/`execAsync` are in `"ags/process"`.
+
+4. **Tray singleton**: `AstalTray.get_default()`, NOT `AstalTray.Tray.get_default()`. The module IS the class for all Astal services.
+
+### JSX Mistakes
+
+5. **`vertical` prop on box**: GTK4 `box` has NO `vertical` boolean prop. Use `orientation={Gtk.Orientation.VERTICAL}`. Using `vertical` causes "No property vertical on GtkBox" error.
+
+6. **`cssClasses` instead of `class`**: AGS JSX uses `class="my-class"` (a string), NOT `cssClasses={["my-class"]}` (an array). The `class` prop is intercepted by AGS's JSX runtime and handles reactive updates. `cssClasses` bypasses this and silently fails for reactive values. For reactive classes: `class={createComputed(() => active() ? "btn active" : "btn")}`.
+
+7. **`setup` instead of `$`**: The ref callback prop is `$`, NOT `setup`. Use `$={(self) => { ... }}`.
+
+8. **Missing `$type` on centerbox children**: `<centerbox>` children MUST have `$type="start"`, `$type="center"`, `$type="end"`. Without these, the centerbox layout is broken — the bar renders as 1px tall because `vfunc_add_child` doesn't know which slot to assign children to.
+
+9. **`createBinding(createComputed(...))` anti-pattern**: NEVER wrap a `createComputed` in `createBinding`. `createBinding` takes a GObject + property name ONLY. `createComputed` already returns a reactive value. Use `createComputed` directly in JSX props.
+
+10. **Binding as children renders "Accessor { }"**: Using `{binding((list) => list.map(...))}` as JSX children can render the Accessor object as text. Use `<For each={binding}>` for dynamic lists instead.
+
+### CSS Mistakes
+
+11. **Missing global CSS reset**: GTK4's Adwaita theme applies white backgrounds and borders to buttons by default. Without a global `* { background: transparent; border: none; }` reset, your bar will have white button backgrounds even with custom CSS.
+
+12. **`sass` not installed**: AGS requires `dart-sass` to compile `.scss` files. Without it, AGS crashes with "executable sass not found in $PATH". Install with `pacman -S dart-sass`.
+
+### Configuration Mistakes
+
+13. **`requestHandler` signature**: The parameter is `argv: string[]` (array), NOT `request: string`. Calling `.trim()` on it causes "request.trim is not a function".
+
+14. **Notification daemon conflict**: Only one notification daemon can run. If AGS handles notifications via AstalNotifd, kill and mask dunst/mako/swaync first: `pkill dunst; systemctl --user mask dunst.service`. Otherwise AGS gets "dunst is already running" and the notification component fails.
+
+15. **`ags init` on existing directory**: If `~/.config/ags/` already has files, `ags init -d ~/.config/ags` fails. Just run `ags types -u -d ~/.config/ags` to generate type definitions without scaffolding.
+
+16. **Wrong Arch package names in install.sh**: The Astal library packages are named `libastal-*-git` in AUR, NOT `astal-*-git`. Wrong names silently fail with "package not found" and then AGS crashes at runtime with missing typelib errors.

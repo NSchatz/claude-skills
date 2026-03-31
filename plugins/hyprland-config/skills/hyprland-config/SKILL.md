@@ -223,9 +223,11 @@ hyprpaper.conf / hyprlock.conf / hypridle.conf  (in ~/.config/hypr/ if applicabl
 ~/.config/wofi/config + style.css  (or ~/.config/rofi/{config.rasi,themes/}  or ~/.config/fuzzel/fuzzel.ini)
 ~/.config/wlogout/layout + style.css  (if using wlogout)
 ~/.config/kitty/kitty.conf
+~/.config/Code - OSS/User/settings.json  (or Code/User/ or VSCodium/User/ — if VS Code theming requested)
 ~/.config/starship.toml  (if using starship)
 ~/.zshrc / ~/.config/fish/config.fish  (if shell config requested)
 install.sh
+uninstall.sh
 ```
 
 #### autostart.conf
@@ -449,6 +451,47 @@ windowrule {
 
 **Shell directive**: If the user is switching to a non-default shell (fish, zsh), add `shell /usr/bin/fish` (or `/usr/bin/zsh`) to `kitty.conf` so it takes effect immediately without waiting for `chsh` + re-login.
 
+#### VS Code
+If the user mentions VS Code as a daily app or asks for a complete rice, offer to theme it. VS Code is one of the most visible apps on a developer's desktop — an unthemed VS Code breaks the visual coherence.
+
+**Variants and config paths** (detect which is installed):
+- **Code OSS** (Arch `code` package): class `code-oss`, config at `~/.config/Code - OSS/User/settings.json`
+- **Visual Studio Code** (official Microsoft binary / AUR `visual-studio-code-bin`): class `code`, config at `~/.config/Code/User/settings.json`
+- **VSCodium** (FOSS build): class `vscodium`, config at `~/.config/VSCodium/User/settings.json`
+
+**Extensions** — install via CLI:
+```bash
+code --install-extension Catppuccin.catppuccin-vsc        # color theme
+code --install-extension Catppuccin.catppuccin-vsc-icons  # file icons
+```
+
+**settings.json** — create or merge into the user's existing settings:
+```json
+{
+    "workbench.colorTheme": "Catppuccin Mocha",
+    "workbench.iconTheme": "catppuccin-mocha",
+    "editor.fontFamily": "'JetBrainsMono Nerd Font', 'JetBrains Mono', monospace",
+    "editor.fontSize": 14,
+    "editor.fontLigatures": true,
+    "window.titleBarStyle": "custom"
+}
+```
+
+Adjust the color theme name to match the user's flavor (Mocha/Macchiato/Frappe/Latte) and the font to match their Group E choice.
+
+**Transparency** — use a Hyprland window rule, not VS Code's built-in transparency settings. Match the class to the installed variant:
+```ini
+windowrule {
+    name = opacity-vscode
+    match:class = code-oss
+    opacity = 0.9 override 0.8 override
+}
+```
+
+The `override` flag ensures exact values that bypass Hyprland's global `inactive_opacity`. Blur shows through the transparent areas for a frosted glass effect.
+
+**Available Catppuccin themes**: Mocha, Macchiato, Frappe, Latte — plus "No Italics" variants of each. Match the user's chosen flavor.
+
 #### hyprlock
 Load `references/hyprlock.md` and `references/ricing.md`. Generate with `background {}` (blurred screenshot is most popular), `input-field {}` (full color states: outer, inner, check, fail, capslock), and `label {}` blocks for clock/date. Optionally add `image {}` for profile picture and `shape {}` for decorative elements. Match all colors to the theme. Add `animations {}` block. **A config is required — without one, hyprlock locks but renders nothing.**
 
@@ -459,6 +502,8 @@ Load `references/hypridle.md`. Generate with `general {}` block (`lock_cmd = log
 If the user chose **hyprpaper**: Load `references/hyprpaper.md`. Use `wallpaper {}` block syntax with `fit_mode = cover`. Add a fallback block with empty monitor. For rotating wallpapers: set `path` to a directory, add `timeout = 300` and `order = random`.
 
 If the user chose **swww**: Load `references/swww.md`. No config file — all options are CLI flags. Generate autostart line (`exec-once = swww-daemon && swww img ~/Pictures/wallpaper.png`), optionally generate a wallpaper cycling script (`~/.config/hypr/scripts/wallpaper-cycle.sh`) and a keybind for random wallpaper. Key selling point: animated transitions (`--transition-type fade/wipe/wave/grow`). Only one wallpaper daemon should run — don't autostart both.
+
+> **swww package naming pitfall (Arch)**: The `swww` AUR package may install binaries as `awww` and `awww-daemon` instead of `swww` and `swww-daemon`. Before generating autostart lines, verify the actual binary name with `pacman -Ql swww | grep bin`. If the binaries are named `awww`, use `awww-daemon` and `awww img` in all generated configs. The cache directory also changes to `~/.cache/awww/`.
 
 #### GTK / Qt / icon / cursor theming
 Load `references/theming.md`. For a complete rice, generate:
@@ -476,7 +521,7 @@ Load `references/shell.md` now. Generate shell config based on Group H answers:
 - **Starship config**: If using starship, generate `~/.config/starship.toml` with a theme-matched palette (e.g., Catppuccin Mocha colors) and Nerd Font symbols. Use the same font the user chose in Group E.
 - **Powerlevel10k**: If using p10k, add the source line to `.zshrc` and tell the user to run `p10k configure` after install — the wizard generates `~/.p10k.zsh` interactively.
 - **Plugin setup**: For zsh with system packages, add `source` lines for syntax highlighting + autosuggestions. For zsh with zinit, generate the zinit block. For fish with fisher, add fisher install commands to `install.sh`.
-- **CLI utilities**: Add initialization lines for zoxide and fzf to the shell rc. Generate aliases (bash/zsh) or abbreviations (fish) only for tools the user chose to install.
+- **CLI utilities**: Add initialization lines for zoxide and fzf to the shell rc. Generate aliases (bash/zsh) or abbreviations (fish) only for tools the user chose to install. **zoxide `--cmd cd` pitfall**: Do NOT use `alias cd=z` or `abbr -a cd z` — this breaks autosuggestions/completions because `z` is a shell function, not a real command. Instead, use `zoxide init <shell> --cmd cd | source` which makes zoxide register directly as `cd` (and `cdi` for interactive mode) with proper completions. This applies to all shells.
 - **TTY launch line**: If the user chose no display manager, add the Hyprland auto-start line to the correct login profile for their shell (`.bash_profile`, `.zprofile`, or `config.fish`). Use uwsm variant if applicable. **Do NOT generate TTY launch lines if the user chose greetd or SDDM** — the display manager handles session launch, and having both creates a conflict where the TTY line tries to start Hyprland before greetd does.
 - **Default shell change**: Add `chsh -s /usr/bin/zsh` (or fish) to `install.sh` if the user chose a non-default shell. Include a comment that re-login is required.
 - **Fastfetch**: If installed, optionally add `fastfetch` to the end of the shell rc so it displays system info on terminal launch. Ask the user if they want this — some find it annoying on every new terminal.
@@ -492,12 +537,24 @@ Generate a complete AGS project:
 
 Key generation rules:
 - Use AGS v3 APIs only: `createState`, `createBinding`, `createComputed`, `createEffect`, `createPoll`. Never use v1/v2 APIs (`Variable`, `bind()`, `Widget.Box`, `astalify`, `App.config`)
-- Import from `"ags/gtk4/app"`, `"ags"`, `"ags/time"`, `"ags/process"`, `"gi://AstalXxx"`
+- **`app` is a default export**: `import app from "ags/gtk4/app"` — NOT `import { App } from "ags/gtk4/app"`. Use lowercase `app` everywhere (e.g., `application={app}`, `app.toggle_window(...)`)
+- **Import locations**: `createState`/`createBinding`/`createComputed`/`For`/`With` from `"ags"`, `createPoll` from `"ags/time"`, `exec`/`execAsync` from `"ags/process"`
+- **Astal service imports use NO version string**: `import AstalTray from "gi://AstalTray"` — NOT `gi://AstalTray?version=0.1`. Only `Astal`, `Gtk`, `Gdk` need `?version=4.0`
+- **GTK4 box has no `vertical` prop**: Use `orientation={Gtk.Orientation.VERTICAL}` instead
+- **Use `class` not `cssClasses`**: AGS JSX uses `class="name"` (string), not `cssClasses={["name"]}` (array). For reactive: `class={createComputed(() => "...")}`
+- **Use `$` not `setup`** for ref callbacks: `$={(self) => { ... }}`
+- **CenterBox children need `$type` props**: `$type="start"`, `$type="center"`, `$type="end"` — without these the bar renders 1px tall
+- **Never `createBinding(createComputed(...))`**: `createBinding` is only for GObject + property name. `createComputed` already returns a reactive value
+- **Use `<For each={binding}>` for dynamic lists**: Don't use `{binding((list) => list.map(...))}` as children — it renders as "Accessor { }" text
+- **`requestHandler(argv: string[], res)`**: `argv` is an array, not a string — don't call `.trim()` or `.split()` on it
+- **Global CSS reset required**: GTK4 Adwaita theme applies white backgrounds to buttons. Include `* { background: transparent; border: none; }` at top of SCSS
+- **`dart-sass` required**: Install it or AGS crashes with "executable sass not found"
 - Every window needs `visible` set explicitly (GTK4 windows are invisible by default)
 - Set `namespace` on windows so Hyprland layerrules can target them
 - Use `exclusivity={Astal.Exclusivity.EXCLUSIVE}` for bars (reserves screen space)
 - Popup windows (launcher, quick settings, power menu) should use `application={app}` and `name="xxx"` so `ags toggle xxx` works from keybinds
-- The notification daemon is exclusive — if AGS handles notifications via AstalNotifd, don't also start dunst/mako/swaync
+- The notification daemon is exclusive — if AGS handles notifications via AstalNotifd, kill and mask dunst/mako/swaync first (`systemctl --user mask dunst.service`)
+- **Astal packages are `libastal-*-git`** in AUR, NOT `astal-*-git` — wrong names silently fail
 
 When AGS is the bar, skip generating waybar config. When AGS handles notifications, skip dunst/mako/swaync. When AGS includes a launcher, skip wofi/rofi/fuzzel. Adjust autostart.conf accordingly:
 ```ini
@@ -555,6 +612,47 @@ Generate a robust install script with comprehensive error handling. Tailor the p
 - GTK theme package: `catppuccin-gtk-theme-mocha` — installs themes as `catppuccin-mocha-{accent}-standard+default` (NOT `catppuccin-mocha-standard-{accent}-dark`)
 - Cursor package: `catppuccin-cursors-mocha` — installs as `catppuccin-mocha-{accent}-cursors` (NOT `catppuccin-mocha-dark-cursors` unless using the generic dark variant)
 - Always verify actual installed names by checking `/usr/share/themes/` and `/usr/share/icons/` after install.
+
+**Astal library package naming** (Arch AUR):
+- All Astal service libraries are named `libastal-*-git`, NOT `astal-*-git`. The `astal-*-git` names do not exist.
+- Core: `libastal-io-git`, `libastal-git`, `libastal-4-git`
+- Services: `libastal-battery-git`, `libastal-bluetooth-git`, `libastal-hyprland-git`, `libastal-mpris-git`, `libastal-network-git`, `libastal-notifd-git`, `libastal-tray-git`, `libastal-wireplumber-git`, `libastal-apps-git`, `libastal-powerprofiles-git`
+- `grimblast` is AUR-only as `grimblast-git` — it is NOT in official repos, so put it in the AUR package list, not the pacman list
+- `dart-sass` is required for AGS SCSS compilation — include it in pacman packages
+- Add `fc-cache -f` before font verification in install.sh — newly installed fonts may not be found by `fc-list` until the cache is rebuilt
+
+### Step 5b: uninstall.sh
+
+Generate an uninstall script alongside install.sh. The uninstall script should cleanly reverse the install — removing packages, config files, and system changes — while being safe and confirmatory. Users need this when switching to a different setup, troubleshooting a broken rice, or doing a clean reinstall.
+
+**Structure:**
+- **Confirmation prompt**: Show what will be removed and require explicit confirmation before proceeding. The uninstall script should never silently remove files.
+- **Selective uninstall**: Offer the user a choice between full uninstall (everything) and partial (keep packages, only remove configs — or vice versa). This matters because someone might want to reset their config without losing all their installed packages.
+- **Config backup**: Before removing any config files, create a timestamped backup tarball (e.g., `~/hypr-backup-20260331.tar.gz`) containing all config directories that will be removed. Tell the user where the backup is so they can restore if needed.
+- **Config removal**: Remove the config directories the install script created:
+  - `~/.config/hypr/` (hyprland.conf and all modular configs)
+  - `~/.config/waybar/` or `~/.config/ags/` (depending on what was installed)
+  - `~/.config/dunst/` / `~/.config/mako/` / `~/.config/swaync/` (notification daemon)
+  - `~/.config/wofi/` / `~/.config/rofi/` / `~/.config/fuzzel/` (launcher)
+  - `~/.config/wlogout/` (if installed)
+  - `~/.config/kitty/kitty.conf` (or the full directory if the skill created it)
+  - `~/.config/starship.toml`
+  - `~/.config/uwsm/` (uwsm env files)
+  - `~/.config/gtk-3.0/settings.ini`, `~/.config/gtk-4.0/settings.ini`
+  - `~/.icons/default/index.theme`
+  - Shell config additions (warn but don't auto-remove `.zshrc`/`config.fish` — the user may have other customizations in there)
+- **Package removal**: Use the same package manager detected at install time. Remove packages in reverse order (AUR first, then official). Use `pacman -Rns` to also remove orphaned dependencies. List each package being removed.
+- **Service cleanup**: Unmask any masked services (e.g., `systemctl --user unmask dunst.service`), disable any enabled services the install script set up.
+- **Plugin cleanup**: Run `hyprpm remove` for any plugins that were installed.
+- **Shell restoration**: If the install changed the default shell (e.g., to fish or zsh), offer to change it back to bash with `chsh -s /bin/bash`.
+- **Summary**: Show what was removed, what was backed up, and any manual steps remaining (e.g., "log out and back in for shell change to take effect").
+
+**Safety rules:**
+- Never remove packages that were already installed before the rice (the install script can't easily track this, so warn the user that some packages may have been pre-existing)
+- Never remove system-critical packages (pipewire, networkmanager, etc.) — only remove rice-specific packages (themes, fonts, companion tools)
+- Don't remove the user's wallpapers, screenshots, or personal files
+- Don't touch `/etc/` files without explicit confirmation
+- Color-code output the same way as install.sh (green for success, yellow for warnings, red for errors)
 
 ---
 

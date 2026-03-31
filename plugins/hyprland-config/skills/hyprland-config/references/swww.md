@@ -14,6 +14,8 @@ swww differs from hyprpaper in that it supports smooth animated transitions betw
 **Package**: `swww` (AUR)
 **No config file** — all options are command-line flags.
 
+> **Naming pitfall (Arch)**: The `swww` AUR package may install binaries as `awww` and `awww-daemon` instead of `swww` and `swww-daemon`. Always verify the actual binary name with `pacman -Ql swww | grep bin` before generating configs. If the binaries are named `awww`, substitute `awww-daemon` and `awww img` everywhere below.
+
 ---
 
 ## Setup
