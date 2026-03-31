@@ -1,7 +1,7 @@
 ---
 name: hyprland-config
-description: Use this skill whenever the user wants to set up, configure, or modify Hyprland — the Wayland compositor. This includes creating a full Hyprland environment from scratch, modifying an existing config, configuring companion apps (waybar, wofi, rofi, fuzzel, anyrun, kitty, dunst, mako, swaync, hyprlock, hypridle, hyprpaper, swww, wlogout), setting up monitors, keybindings, window rules, animations, decorations, layouts, workspace rules, and generating an install.sh. Trigger whenever the user mentions hyprland.conf, hyprctl, Hyprland settings, ricing, tiling on Wayland, or any Hyprland-specific topic like gaps, borders, blur, or animations. Also trigger when the user pastes a hyprland.conf snippet and asks for help. Always use this skill for any Hyprland-related configuration — even simple questions about a single keybind or option.
-version: 3.2.0
+description: Use this skill whenever the user wants to set up, configure, or modify Hyprland — the Wayland compositor. This includes creating a full Hyprland environment from scratch, modifying an existing config, configuring companion apps (waybar, wofi, rofi, fuzzel, anyrun, kitty, dunst, mako, swaync, hyprlock, hypridle, hyprpaper, swww, wlogout), setting up monitors, keybindings, window rules, animations, decorations, layouts, workspace rules, generating an install.sh, and setting up a dotfiles repository with GNU Stow for config backup/sharing/reuse across machines. Trigger whenever the user mentions hyprland.conf, hyprctl, Hyprland settings, ricing, tiling on Wayland, dotfiles repo for Hyprland, stow + hyprland, or any Hyprland-specific topic like gaps, borders, blur, or animations. Also trigger when the user pastes a hyprland.conf snippet and asks for help. Always use this skill for any Hyprland-related configuration — even simple questions about a single keybind or option.
+version: 3.3.0
 ---
 
 # Hyprland Configuration Skill
@@ -39,6 +39,7 @@ Load these as needed — not all at once:
 | `references/swww.md` | swww animated wallpaper daemon — transitions, GIF support, cycling scripts, per-monitor setup, vs hyprpaper comparison |
 | `references/ags.md` | AGS (Aylur's GTK Shell) — full TypeScript/JSX shell framework: project structure, reactivity, all Astal library APIs, widget types, CSS theming, complete component examples (bar, notifications, launcher, OSD, quick settings, media player, power menu), multi-monitor, HyprPanel |
 | `references/firefox.md` | Firefox userChrome.css/userContent.css theming — floating tabs, transparent toolbar, auto-hide bookmarks, Catppuccin/themed new tab page, sidebar styling, compact density, user.js setup |
+| `references/dotfiles.md` | Dotfile management with Git + GNU Stow — repo structure, stow commands, machine-specific configs, bootstrap scripts, adopting existing configs, secrets handling |
 
 ---
 
@@ -51,6 +52,8 @@ Load these as needed — not all at once:
 **B. Modifying an existing config** → Ask for the relevant file(s) if not pasted. Read before editing. Make minimal targeted changes.
 
 **C. Targeted question** (e.g., "how do I bind SUPER+T to kitty?") → Answer directly with the correct snippet. Load only the relevant reference.
+
+**D. Dotfiles repo setup** → The user wants to store their Hyprland configs in a git repo with GNU Stow. This can be combined with A (generate everything into a dotfiles repo) or standalone (restructure existing configs into a stow-managed repo). Load `references/dotfiles.md` and follow Step 5c.
 
 ---
 
@@ -67,6 +70,7 @@ If the user's opening message already answers some questions (e.g., "catppuccin 
 - **Starting fresh or have an existing `~/.config/hypr/`?**
 - **Desktop or laptop?** (Affects whether to include battery, backlight, touchpad, lid switch, power profiles)
 - **Primary use case?** (Development, gaming, creative work, general use — helps prioritize window rules and keybinds)
+- **Dotfiles repo?** Do you want your configs stored in a git repo with GNU Stow for easy backup, sharing, and reuse across machines? (If yes, configs go into `~/dotfiles/` as stow packages instead of directly into `~/.config/`)
 
 #### Group B — Core tools
 - **Terminal:** kitty / alacritty / foot / wezterm / ghostty / other?
@@ -683,6 +687,121 @@ Generate an uninstall script alongside install.sh. The uninstall script should c
 - Don't remove the user's wallpapers, screenshots, or personal files
 - Don't touch `/etc/` files without explicit confirmation
 - Color-code output the same way as install.sh (green for success, yellow for warnings, red for errors)
+
+---
+
+### Step 5c: Dotfiles repo with GNU Stow (if user said yes in Group A)
+
+Load `references/dotfiles.md` now. When the user wants a dotfiles repo, the entire output structure changes — instead of writing configs directly to `~/.config/`, generate them inside a stow-managed git repo at `~/dotfiles/`.
+
+#### Output structure
+
+Organize configs into **one stow package per application**, with each package's internal directory structure mirroring the path from `$HOME`. See `references/dotfiles.md` for the full directory layout.
+
+**Which packages to create** depends on what the user chose in the interview. Every tool they selected becomes its own package:
+
+| Interview choice | Package name | Target path |
+|-----------------|-------------|-------------|
+| Hyprland core configs | `hypr/` | `.config/hypr/*` |
+| Waybar | `waybar/` | `.config/waybar/*` |
+| AGS / hyprpanel | `ags/` | `.config/ags/*` |
+| Kitty / Alacritty / etc. | `kitty/` (or terminal name) | `.config/kitty/*` |
+| Dunst / Mako / SwayNC | `dunst/` (or daemon name) | `.config/dunst/*` |
+| Wofi / Rofi / Fuzzel | `wofi/` (or launcher name) | `.config/wofi/*` |
+| Wlogout | `wlogout/` | `.config/wlogout/*` |
+| Hyprlock + Hypridle | Include in `hypr/` package | `.config/hypr/hyprlock.conf`, etc. |
+| Hyprpaper / swww | `hypr/` (for hyprpaper.conf) or `scripts/` (for swww cycling script) | `.config/hypr/hyprpaper.conf` |
+| GTK/Qt theming | `gtk/` | `.config/gtk-3.0/`, `.config/gtk-4.0/`, `.icons/` |
+| Shell (zsh/fish) + starship | `shell/` | `.zshrc`, `.zprofile`, `.config/starship.toml`, or `.config/fish/` |
+| Custom scripts | `scripts/` | `.local/bin/*` |
+| VS Code theming | `vscode/` | `.config/Code/User/settings.json` |
+| Firefox theming | `firefox/` | `.mozilla/firefox/PROFILE/chrome/*` |
+| uwsm env files | `uwsm/` | `.config/uwsm/*` |
+
+#### Variable declaration order in dotfiles repos
+
+This is especially important with stow: the main `hyprland.conf` must declare all variables (`$terminal`, `$fileManager`, `$menu`, etc.) **before** any `source =` lines. Since sourced files are processed inline, a variable referenced in `keybinds.conf` must already be defined in `hyprland.conf` above the `source = ~/.config/hypr/keybinds.conf` line.
+
+#### setup.sh replaces install.sh
+
+When generating a dotfiles repo, generate a `setup.sh` at the repo root instead of a standalone `install.sh`. The setup script combines package installation with stow operations:
+
+1. **Install system dependencies** (same logic as Step 5's install.sh — AUR helper detection, batch install with fallback, etc.)
+2. **Install stow** itself (`sudo pacman -S --needed stow`)
+3. **Backup existing configs** — move real files (not symlinks) to `~/.config-backup-TIMESTAMP/`
+4. **Generate `.stowrc`** with `--target=$HOME`
+5. **Stow all packages** — iterate over the packages that exist in the repo
+6. **Post-install** — font cache rebuild, display manager setup, shell change, verification
+
+Also generate a `teardown.sh` that unstows all packages and optionally removes installed packages (same logic as Step 5b's uninstall.sh, but using `stow -D` to remove symlinks instead of `rm`).
+
+#### Package list files
+
+Generate plain text package lists at the repo root for easy maintenance:
+
+- `packages.txt` — official repo packages (one per line)
+- `aur-packages.txt` — AUR packages (one per line)
+
+The setup script reads these instead of hardcoding package names, so users can add/remove packages without editing the script.
+
+#### .gitignore and .stow-local-ignore
+
+Generate both files at the repo root:
+
+**`.gitignore`:**
+```gitignore
+# Secrets
+*.secret
+.env
+
+# Machine-specific overrides
+**/local.conf
+
+# OS
+.DS_Store
+*.swp
+*~
+```
+
+**`.stow-local-ignore`** (replaces stow defaults — must re-add them):
+```
+\.git
+\.gitignore
+\.gitmodules
+^README.*
+^LICENSE.*
+\.stowrc
+^packages\.txt
+^aur-packages\.txt
+^setup\.sh
+^teardown\.sh
+^Makefile
+^\.stow-local-ignore
+```
+
+#### README.md
+
+Generate a README.md with:
+- Screenshot placeholder (users love showing off their rice)
+- List of tools/packages used
+- Quick-start instructions (`git clone` → `cd dotfiles` → `./setup.sh`)
+- Manual stow commands for selective installation
+- Credit/theme info
+
+#### Multi-machine support
+
+If the user mentions multiple machines or asks about portability, use the **host-specific packages** strategy from `references/dotfiles.md`: shared configs in the base package, machine-specific overrides (monitors, touchpad, HiDPI) in `hypr-desktop/` or `hypr-laptop/` packages. The setup script should accept an optional hostname argument or auto-detect.
+
+#### Adopting existing configs
+
+If the user already has Hyprland configs and wants to migrate them into a dotfiles repo (request type D standalone):
+
+1. Create the package directory structure
+2. Move existing files into the correct package paths
+3. Stow to create symlinks back
+4. Initialize git repo, commit, and optionally set up a remote
+
+Walk the user through `stow --adopt` if they want to pull in existing files, but warn them to `git diff` immediately after.
 
 ---
 

@@ -556,6 +556,134 @@
           "text": "Bar window uses WindowAnchor.TOP | LEFT | RIGHT with EXCLUSIVE exclusivity"
         }
       ]
+    },
+    {
+      "id": 14,
+      "prompt": "I want a full Hyprland setup on Arch stored in a dotfiles git repo with GNU Stow so I can back it up and reuse it on other machines. Single 2560x1440 165Hz desktop monitor. Catppuccin Mocha, kitty, wofi, waybar (floating pill), dunst, hyprpaper, hyprlock, hypridle, wlogout. Zsh + starship. JetBrainsMono Nerd Font. Include a setup.sh that installs everything and stows the configs. I want the repo at ~/dotfiles.",
+      "expected_output": "A complete dotfiles repo structure at ~/dotfiles/ with stow packages for each tool (hypr/, waybar/, kitty/, wofi/, dunst/, wlogout/, shell/, scripts/, gtk/). Each package mirrors the $HOME path (e.g., hypr/.config/hypr/hyprland.conf). A setup.sh at repo root that installs packages, backs up existing configs, and stows everything. Package list files (packages.txt, aur-packages.txt). .gitignore, .stow-local-ignore, .stowrc, and README.md. All configs use Catppuccin Mocha consistently.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "stow-package-structure",
+          "text": "Configs are organized into stow packages with correct directory mirroring (e.g., hypr/.config/hypr/hyprland.conf, waybar/.config/waybar/config.jsonc, kitty/.config/kitty/kitty.conf)"
+        },
+        {
+          "id": "multiple-packages",
+          "text": "At least 5 separate stow packages are created (hypr, waybar, kitty, wofi/dunst, shell/scripts)"
+        },
+        {
+          "id": "setup-sh-generated",
+          "text": "A setup.sh script is generated at the repo root (not install.sh inside a package)"
+        },
+        {
+          "id": "setup-installs-stow",
+          "text": "setup.sh includes installation of the 'stow' package"
+        },
+        {
+          "id": "setup-stow-commands",
+          "text": "setup.sh runs stow commands to symlink packages (e.g., 'stow hypr', 'stow waybar', or 'stow */')"
+        },
+        {
+          "id": "setup-backup-existing",
+          "text": "setup.sh backs up existing config files/directories before stowing"
+        },
+        {
+          "id": "package-list-files",
+          "text": "packages.txt and/or aur-packages.txt are generated listing required packages"
+        },
+        {
+          "id": "stowrc-generated",
+          "text": "A .stowrc file is generated (or setup.sh creates one) with --target=$HOME"
+        },
+        {
+          "id": "gitignore-generated",
+          "text": "A .gitignore file is generated at the repo root"
+        },
+        {
+          "id": "vars-before-source",
+          "text": "In hyprland.conf, variable declarations ($terminal, $menu, etc.) appear before any source = lines"
+        },
+        {
+          "id": "catppuccin-colors",
+          "text": "Catppuccin Mocha colors are used consistently (e.g., #1e1e2e, #cdd6f4)"
+        },
+        {
+          "id": "teardown-or-unstow",
+          "text": "A teardown.sh or uninstall script is generated that uses 'stow -D' to unstow packages"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "prompt": "I already have a working Hyprland setup with configs in ~/.config/hypr/, ~/.config/waybar/, ~/.config/kitty/, and ~/.config/dunst/. I want to migrate all of these into a dotfiles repo at ~/dotfiles using GNU Stow. Walk me through the process and generate the scripts/structure I need. I'm on Arch.",
+      "expected_output": "A migration guide and script that: creates the dotfiles repo directory structure, moves existing configs into the correct stow package paths, initializes git, creates .stowrc/.gitignore/.stow-local-ignore, runs stow to create symlinks back, and commits the initial state. Should warn about stow --adopt and the importance of git diff after.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "migration-creates-packages",
+          "text": "Output creates package directories (hypr/.config/hypr/, waybar/.config/waybar/, kitty/.config/kitty/, dunst/.config/dunst/) inside ~/dotfiles"
+        },
+        {
+          "id": "moves-existing-files",
+          "text": "Output includes mv commands (or stow --adopt) to move existing configs from ~/.config/ into the dotfiles package structure"
+        },
+        {
+          "id": "git-init",
+          "text": "Output initializes a git repository in ~/dotfiles (git init)"
+        },
+        {
+          "id": "stow-after-move",
+          "text": "Output runs stow commands after moving files to create symlinks back to ~/.config/"
+        },
+        {
+          "id": "gitignore-included",
+          "text": "A .gitignore is generated for the dotfiles repo"
+        },
+        {
+          "id": "initial-commit",
+          "text": "Output includes a git add + git commit for the initial state"
+        },
+        {
+          "id": "adopt-warning",
+          "text": "If stow --adopt is mentioned, output warns to run git diff immediately after"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "I have a Hyprland dotfiles repo with GNU Stow and I use it on my desktop (3440x1440 ultrawide). Now I want to set it up on my laptop too (eDP-1 1920x1080 60Hz, with touchpad). The laptop needs different monitor config, touchpad settings, and battery/backlight in waybar. How should I handle machine-specific configs in my stow repo? Show me the directory structure and the files I need to add.",
+      "expected_output": "A host-specific package strategy: shared configs stay in the existing packages, machine-specific configs (monitors, touchpad input, waybar with battery) go into hypr-desktop/ and hypr-laptop/ packages. Each has its own hyprland.conf that sources shared files. Waybar might need waybar-desktop/ and waybar-laptop/ if the configs differ significantly, or conditional logic.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "host-specific-packages",
+          "text": "Output creates separate packages for desktop and laptop (e.g., hypr-desktop/, hypr-laptop/ or similar naming)"
+        },
+        {
+          "id": "shared-configs-preserved",
+          "text": "Shared configs (keybinds, window rules, animations) remain in a common package, not duplicated"
+        },
+        {
+          "id": "laptop-monitor-config",
+          "text": "Laptop package includes monitor config for eDP-1 at 1920x1080@60"
+        },
+        {
+          "id": "laptop-touchpad",
+          "text": "Laptop config includes touchpad/input settings (tap_to_click, natural_scroll, or similar)"
+        },
+        {
+          "id": "laptop-waybar-battery",
+          "text": "Laptop waybar config includes battery and backlight modules"
+        },
+        {
+          "id": "selective-stow-instructions",
+          "text": "Output explains which packages to stow on each machine (e.g., 'on laptop: stow hypr hypr-laptop waybar-laptop ...')"
+        },
+        {
+          "id": "source-shared-files",
+          "text": "Machine-specific hyprland.conf sources the shared config files (keybinds.conf, windowrules.conf, etc.)"
+        }
+      ]
     }
   ]
 }
