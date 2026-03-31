@@ -38,6 +38,7 @@ Load these as needed — not all at once:
 | `references/wlogout.md` | wlogout logout menu — layout JSON, CSS theming, custom icons, waybar power button, launch options |
 | `references/swww.md` | swww animated wallpaper daemon — transitions, GIF support, cycling scripts, per-monitor setup, vs hyprpaper comparison |
 | `references/ags.md` | AGS (Aylur's GTK Shell) — full TypeScript/JSX shell framework: project structure, reactivity, all Astal library APIs, widget types, CSS theming, complete component examples (bar, notifications, launcher, OSD, quick settings, media player, power menu), multi-monitor, HyprPanel |
+| `references/firefox.md` | Firefox userChrome.css/userContent.css theming — floating tabs, transparent toolbar, auto-hide bookmarks, Catppuccin/themed new tab page, sidebar styling, compact density, user.js setup |
 
 ---
 
@@ -224,6 +225,7 @@ hyprpaper.conf / hyprlock.conf / hypridle.conf  (in ~/.config/hypr/ if applicabl
 ~/.config/wlogout/layout + style.css  (if using wlogout)
 ~/.config/kitty/kitty.conf
 ~/.config/Code - OSS/User/settings.json  (or Code/User/ or VSCodium/User/ — if VS Code theming requested)
+<firefox-profile>/chrome/userChrome.css + userContent.css + ../user.js  (if Firefox theming requested)
 ~/.config/starship.toml  (if using starship)
 ~/.zshrc / ~/.config/fish/config.fish  (if shell config requested)
 install.sh
@@ -491,6 +493,34 @@ windowrule {
 The `override` flag ensures exact values that bypass Hyprland's global `inactive_opacity`. Blur shows through the transparent areas for a frosted glass effect.
 
 **Available Catppuccin themes**: Mocha, Macchiato, Frappe, Latte — plus "No Italics" variants of each. Match the user's chosen flavor.
+
+#### Firefox
+Load `references/firefox.md` for complete userChrome.css patterns, userContent.css styling, and the interview questions to ask. Firefox is a highly visible app and an unthemed Firefox with its default light UI breaks an otherwise polished dark rice. If the user mentions Firefox as a daily app or asks for a "complete rice", offer to theme it.
+
+**Three files, one profile directory:**
+- `chrome/userChrome.css` — styles Firefox's UI (tabs, toolbar, sidebar, menus)
+- `chrome/userContent.css` — styles internal pages (`about:newtab`, `about:preferences`, `about:addons`, `about:privatebrowsing`)
+- `user.js` — enables `toolkit.legacyUserProfileCustomizations.stylesheets` (required) and sets preferences like compact density
+
+**Profile path detection**: Firefox on Linux stores profiles at `~/.mozilla/firefox/` or `~/.config/mozilla/firefox/`. Read `profiles.ini` to find the active profile (the one under `[Install*]` → `Default=`). The `chrome/` directory may not exist yet — create it.
+
+**Interview questions** (ask individually, not as a batch):
+1. **Tab style**: floating pills (rounded, gaps between tabs) or connected (traditional with rounded top corners)?
+2. **Toolbar density**: compact or normal? (suggest compact if unsure — pairs well with tiling WMs)
+3. **What to hide**: title bar, auto-hide bookmarks bar, reduce padding, hide Firefox Suggest? (offer "all" as a shortcut)
+4. **New tab page**: style `about:newtab` with the user's color scheme?
+5. **Sidebar**: do they use it? If yes, theme it.
+6. **Transparency**: make the toolbar transparent so wallpaper blur shows through?
+
+**Key implementation rules:**
+- Match `border-radius` in tabs/URL bar to the user's Hyprland `rounding` value for visual consistency
+- Use the same color palette variables as the rest of the rice (e.g., Catppuccin Mocha mauve for active/focus accents)
+- Floating tabs use `.tabbrowser-tab .tab-background` with `border-radius`, margin for gaps, and transparent/semi-transparent backgrounds
+- Auto-hide bookmarks bar uses `max-height: 0` + `opacity: 0` with transition, revealed on `#navigator-toolbox:hover`
+- Toolbar transparency: `#navigator-toolbox { background: rgba(base, 0.85) }` — matches the pattern used for waybar pills
+- `user.js` must set `toolkit.legacyUserProfileCustomizations.stylesheets` to `true` or the CSS files are ignored
+- Set `browser.compactmode.show` and `browser.uidensity` to `1` for compact mode
+- Remind the user to **fully restart Firefox** (quit + reopen) for changes to take effect
 
 #### hyprlock
 Load `references/hyprlock.md` and `references/ricing.md`. Generate with `background {}` (blurred screenshot is most popular), `input-field {}` (full color states: outer, inner, check, fail, capslock), and `label {}` blocks for clock/date. Optionally add `image {}` for profile picture and `shape {}` for decorative elements. Match all colors to the theme. Add `animations {}` block. **A config is required — without one, hyprlock locks but renders nothing.**
