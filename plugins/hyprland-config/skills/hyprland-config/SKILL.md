@@ -59,26 +59,46 @@ Load these as needed — not all at once:
 
 ### Step 2: The User Interview (for new setups)
 
-Read `references/packages.md` now. The interview is the most important part of generating a config that actually fits the user. Rushing through it produces generic configs that feel impersonal. Take the time to understand what the user wants — a few extra questions upfront save them from having to manually fix things later.
+Read `references/packages.md` now. The interview is the most important part of generating a config that actually fits the user. Rushing through it produces generic configs that feel impersonal.
 
-**Interview pacing:** Don't dump all groups at once. Present 2-3 groups per message, keeping related topics together. After each batch of answers, acknowledge what they chose and ask the next batch. If an answer is ambiguous or interesting (e.g., they mention a specific workflow), ask a follow-up before moving on. The goal is a conversation, not a form.
+#### How to present questions
 
-If the user's opening message already answers some questions (e.g., "catppuccin mocha, kitty, arch linux"), extract those answers and only ask about what's still missing. But still ask follow-up questions about the things they mentioned — "you said kitty — do you want any specific kitty config (opacity, font size, shell override)?" shows you're paying attention.
+Use the `AskUserQuestion` tool for all interview questions. This lets the user click choices instead of typing out answers — faster and less tedious. Each call supports 1-4 questions with 2-4 selectable options each. Every question automatically gets an "Other" option for custom input. Use `multiSelect: true` when choices aren't mutually exclusive. Mark recommended options by putting "(Recommended)" at the end of the label.
 
-#### Group A — System basics
-- **Distro?** (Arch/AUR, Fedora, openSUSE, Debian/Ubuntu, NixOS) — affects package names in install.sh
-- **Starting fresh or have an existing `~/.config/hypr/`?**
-- **Desktop or laptop?** (Affects whether to include battery, backlight, touchpad, lid switch, power profiles)
-- **Primary use case?** (Development, gaming, creative work, general use — helps prioritize window rules and keybinds)
-- **Dotfiles repo?** Do you want your configs stored in a git repo with GNU Stow for easy backup, sharing, and reuse across machines? (If yes, configs go into `~/dotfiles/` as stow packages instead of directly into `~/.config/`)
+**Pacing:** Present 3-4 related questions per `AskUserQuestion` call. After each batch of answers, acknowledge choices and ask follow-up questions (as text or additional `AskUserQuestion` calls) before moving to the next batch. If an answer is ambiguous or interesting, ask a follow-up before moving on. The goal is a conversation, not a form.
 
-#### Group B — Core tools
-- **Terminal:** kitty / alacritty / foot / wezterm / ghostty / other?
-- **App launcher:** wofi / rofi / fuzzel / tofi / other?
-- **Status bar:** waybar (JSON config, easiest) / ags (TypeScript, most powerful — can also replace launcher, notifications, OSD) / hyprpanel (pre-built AGS shell, minimal config) / other / none?
-- **Notification daemon:** dunst / mako / swaync / ags (if using ags as shell, it handles notifications too) / other?
+If the user's opening message already answers some questions (e.g., "catppuccin mocha, kitty, arch linux"), extract those answers and skip those questions. But still ask follow-up questions about things they mentioned — "you said kitty — do you want any specific kitty config (opacity, font size, shell override)?" shows you're paying attention.
 
-**Follow-ups based on answers** (ask these before moving to Group C):
+#### Batch 1 — System basics
+
+Ask these 4 questions together with `AskUserQuestion`:
+
+| Header | Question | Options | Multi? |
+|--------|----------|---------|--------|
+| Distro | What distro are you on? (affects package names in install.sh) | `Arch/AUR`, `Fedora`, `openSUSE`, `Debian/Ubuntu` | no |
+| Setup | Starting fresh or modifying an existing config? | `Fresh install`, `Existing ~/.config/hypr/` | no |
+| Device | Desktop or laptop? (affects battery, backlight, touchpad, lid switch) | `Desktop`, `Laptop` | no |
+| Use case | Primary use case? (helps prioritize window rules and keybinds) | `Development`, `Gaming`, `Creative work`, `General use` | no |
+
+#### Batch 2 — Dotfiles + Core tools
+
+| Header | Question | Options | Multi? |
+|--------|----------|---------|--------|
+| Dotfiles | Store configs in a git repo with GNU Stow for backup/sharing/reuse? | `Yes — ~/dotfiles/ with stow`, `No — write directly to ~/.config/` | no |
+| Terminal | Which terminal? | `kitty`, `alacritty`, `foot`, `wezterm` | no |
+| Launcher | App launcher? | `wofi`, `rofi-wayland`, `fuzzel`, `tofi` | no |
+| Bar | Status bar? | `waybar (JSON config, easiest)`, `ags (TypeScript, most powerful)`, `hyprpanel (pre-built AGS, minimal config)`, `None` | no |
+
+#### Batch 3 — Notifications + Hypr ecosystem
+
+| Header | Question | Options | Multi? |
+|--------|----------|---------|--------|
+| Notify | Notification daemon? | `dunst`, `mako`, `swaync`, `ags (if using ags as shell)` | no |
+| Wallpaper | Wallpaper tool? | `hyprpaper (static)`, `swww (animated transitions)`, `None` | no |
+| Lock | Screen locker? | `hyprlock (Recommended)`, `swaylock`, `None` | no |
+| Idle | Idle daemon? | `hypridle (Recommended)`, `swayidle`, `None` | no |
+
+**Follow-ups** — ask these as text or additional `AskUserQuestion` calls based on Batch 2-3 answers. Ask before moving to the next batch:
 
 *If waybar:* "What modules do you want in your bar? The standard set is workspaces, window title, clock, tray, volume, network. For laptops: battery and backlight. Any extras — media player, CPU/RAM usage, weather, custom scripts, power button? And where do you want the bar — top or bottom?"
 
@@ -90,12 +110,7 @@ If the user's opening message already answers some questions (e.g., "catppuccin 
 
 *Launcher follow-up:* "Do you want the launcher to also handle clipboard history (SUPER+V to search clipboard)? And do you want it to show only apps, or also calculations / file search / emoji picker?"
 
-#### Group C — Hypr ecosystem
-- **Wallpaper:** hyprpaper (static) / swww (animated) / none?
-- **Screen locker:** hyprlock / swaylock / none?
-- **Idle daemon:** hypridle / swayidle / none?
-
-**Follow-ups:**
+**Hypr ecosystem follow-ups** (based on Batch 3 answers):
 
 *If hyprpaper:* "Do you have a specific wallpaper in mind, or want a default path? Do you want wallpaper rotation (cycle through a directory on a timer)?"
 
@@ -105,84 +120,127 @@ If the user's opening message already answers some questions (e.g., "catppuccin 
 
 *If hypridle:* "What idle timeouts feel right? Common setup: dim screen at 2.5 min, lock at 5 min, screen off at 5.5 min, suspend at 30 min. Want to adjust any of those, or disable suspend entirely (common for desktops)?"
 
-#### Group D — Additional tools
-- **File manager:** thunar / nautilus / nemo / yazi / none?
-- **Screenshots:** grim+slurp / grimblast / other?
-- **Clipboard history?** (cliphist + wl-clipboard — yes/no)
-- **Bluetooth GUI?** blueman / none?
-- **Display manager?** SDDM / greetd+tuigreet / none (TTY launch)?
-- **Color temperature?** hyprsunset / gammastep / none?
-- **Logout menu?** wlogout (graphical fullscreen overlay) / none (keybind-only)?
-- **Workspace overview plugin?** hyprexpo (macOS Exposé grid) / none?
-- **Starting via uwsm?** (changes where env vars go — see env.conf section)
-- **Screen recording?** obs-studio / wf-recorder / none?
-- **Auto-mount USB drives?** udiskie (yes/no)
-- **Color picker?** hyprpicker (click any pixel to grab its hex code) — yes/no?
+#### Batch 4 — Additional tools (choices)
 
-#### Group E — Look and feel
-- **Color scheme:** Catppuccin (Mocha/Macchiato/Frappe/Latte) / Tokyo Night / Gruvbox / Dracula / Nord / Everforest / custom?
-- **Font:** JetBrainsMono Nerd Font / FiraCode Nerd Font / Hack / other? Font size?
-- **Cursor theme:** Bibata-Modern-Classic / Catppuccin / system default?
-- **Monitor(s):** how many, resolution(s), refresh rate(s)? Names if known (e.g., DP-1, HDMI-A-1)?
-- **Keyboard layout?** (default: `us`) — multiple layouts with toggle?
-- **Touchpad?** (yes/no — affects input config)
-- **Tiling layout:** dwindle (default, most popular) / master (one large + stack) / preference?
+| Header | Question | Options | Multi? |
+|--------|----------|---------|--------|
+| Files | File manager? | `thunar`, `nautilus`, `nemo`, `yazi (terminal-based)` | no |
+| Screenshot | Screenshot tool? | `grim+slurp`, `grimblast`, `None` | no |
+| Login | Display manager? | `SDDM`, `greetd+tuigreet`, `None (TTY launch)` | no |
+| Night light | Color temperature? | `hyprsunset (Recommended)`, `gammastep`, `None` | no |
 
-**Follow-ups for monitors** (if multi-monitor): "Which monitor is primary? How are they arranged — side by side, stacked? Do you want specific workspaces assigned to specific monitors (e.g., 1-5 on left, 6-10 on right)?"
+#### Batch 5 — Additional tools (extras)
 
-**Follow-ups for touchpad** (if yes): "Do you want tap-to-click? Natural scrolling (reverse direction, like phone)? Disable touchpad while typing? These are common preferences that vary a lot between users."
+Use two multiSelect questions to cover the remaining yes/no tools:
 
-**Follow-ups for input**: "Do you want mouse acceleration or flat input (1:1 movement, preferred by gamers)? Any specific scroll speed or sensitivity preferences?"
+| Header | Question | Options | Multi? |
+|--------|----------|---------|--------|
+| Extras | Which extra tools do you want? | `Clipboard history (cliphist)`, `Bluetooth GUI (blueman)`, `Logout menu (wlogout)`, `Workspace overview (hyprexpo)` | yes |
+| More extras | Any more? | `Launch via uwsm`, `Screen recording (obs/wf-recorder)`, `Auto-mount USB (udiskie)`, `Color picker (hyprpicker)` | yes |
 
-#### Group F — Visual style *(user can say "all defaults" to skip details)*
-- **Bar style:** floating pills (rounded modules floating above desktop — most popular) / solid bar (traditional flat bar) / color-blocked (each module gets its own bold color) / minimal (subtle, icon-only)? *Default: floating pills*
-- **Bar position:** top / bottom? *Default: top*
-- **Gaps:** inner (between windows) / outer (from screen edge)? *Common: 8/16 or 10/20; default: 5/20*
-- **Border size:** pixels? *Rices commonly use 2–3; default: 1*
-- **Border color:** solid color, gradient (two colors + angle), or rainbow? *Gradient borders are the highest-impact single visual setting.*
-- **Corner rounding:** radius in px? *Rices commonly use 8–12; default: 0*
-- **Blur:** disabled / subtle / moderate / heavy? Apply to bar/launcher too (layer blur)?
-- **Shadows:** yes / no? Subtle or dramatic?
-- **Window opacity:** fully opaque, or transparent inactive windows? *e.g. active 1.0, inactive 0.85*
-- **Animation style:** minimal (quick, snappy) / balanced (smooth, moderate) / fancy (bouncy, dramatic)?
-- **Smart gaps?** (no gaps when only one window on workspace — very popular in rices) yes/no?
-- **Special workspaces?** (toggle-able scratchpad overlays) yes/no? How many, and what for (terminal, notes, music player, etc.)?
-- **Dim inactive windows?** (slightly darken windows that aren't focused) yes/no?
+#### Batch 6 — Look and feel
 
-#### Group F2 — Window behavior and app rules *(ask after visual style)*
-- **Window swallowing?** (terminal hides when you launch a GUI app from it, reappears when app closes) — yes/no? *Popular but can confuse some users.*
-- **Commonly used apps?** "Which apps do you use daily? (e.g., Firefox, Discord, Spotify, Steam, VS Code, Slack, file manager) — I'll set up smart window rules for them (floating dialogs, workspace assignments, opacity overrides for media)."
-- **Workspace assignments?** "Want specific apps to always open on certain workspaces? Common: browser on 2, code editor on 3, Discord/Slack on 4, Spotify on 5, Steam on 6."
-- **Floating windows?** "Any apps you always want floating instead of tiled? Common: calculator, color picker, settings dialogs, password managers."
-- **XWayland?** "Do you run any X11-only apps (some games, older apps)? If so I'll make sure XWayland is configured properly. Any HiDPI scaling concerns?"
+| Header | Question | Options | Multi? |
+|--------|----------|---------|--------|
+| Colors | Color scheme? | `Catppuccin`, `Tokyo Night`, `Gruvbox`, `Dracula` | no |
+| Font | Font? | `JetBrainsMono Nerd Font (Recommended)`, `FiraCode Nerd Font`, `Hack Nerd Font` | no |
+| Cursor | Cursor theme? | `Bibata-Modern-Classic (Recommended)`, `Catppuccin`, `System default` | no |
+| Layout | Tiling layout? | `dwindle (default, most popular)`, `master (one large + stack)` | no |
+
+**Follow-ups:**
+
+*If Catppuccin:* Ask flavor with `AskUserQuestion`: `Mocha (dark, most popular)`, `Macchiato`, `Frappe`, `Latte (light)`
+
+*Monitor setup:* "How many monitors do you have? What resolution(s) and refresh rate(s)? Names if known (e.g., DP-1, HDMI-A-1)?"
+
+*If multi-monitor:* "Which monitor is primary? How are they arranged — side by side, stacked? Do you want specific workspaces assigned to specific monitors (e.g., 1-5 on left, 6-10 on right)?"
+
+*Keyboard:* "What keyboard layout? (default: us) Multiple layouts with toggle?"
+
+*If laptop:* Ask touchpad preferences with `AskUserQuestion` (multiSelect): `Tap-to-click`, `Natural scrolling (reverse, like phone)`, `Disable while typing`
+
+*Input:* "Do you want mouse acceleration or flat input (1:1 movement, preferred by gamers)?"
+
+#### Batch 7 — Visual style
+
+Tell the user they can say "all defaults" to skip this and the next batch. If they do, use: floating pills bar (top), 8/16 gaps, 2px border, gradient border, 10px rounding, moderate blur, balanced animations, shadows on, slight transparency, smart gaps on.
+
+| Header | Question | Options | Multi? |
+|--------|----------|---------|--------|
+| Bar style | Bar visual style? | `Floating pills (Recommended)`, `Solid bar (traditional)`, `Color-blocked (bold per-module colors)`, `Minimal (subtle, icon-only)` | no |
+| Gaps | Gap size (inner/outer pixels)? | `Tight (5/10)`, `Balanced (8/16) (Recommended)`, `Spacious (10/20)`, `Wide (15/30)` | no |
+| Borders | Border width? | `Thin (1px)`, `Medium (2px) (Recommended)`, `Thick (3px)` | no |
+| Rounding | Corner rounding? | `None (0px)`, `Subtle (4-6px)`, `Moderate (8-10px) (Recommended)`, `Round (12+px)` | no |
+
+#### Batch 8 — More visual style
+
+| Header | Question | Options | Multi? |
+|--------|----------|---------|--------|
+| Border color | Border color style? | `Solid theme color`, `Gradient (two colors + angle; highest impact) (Recommended)`, `Rainbow` | no |
+| Blur | Background blur? | `Disabled`, `Subtle`, `Moderate (Recommended)`, `Heavy` | no |
+| Animations | Animation style? | `Minimal (quick, snappy)`, `Balanced (smooth, moderate) (Recommended)`, `Fancy (bouncy, dramatic)` | no |
+| Opacity | Window opacity? | `Fully opaque`, `Slight transparency (active 1.0, inactive 0.9)`, `More transparent (active 0.95, inactive 0.85)` | no |
+
+#### Batch 9 — Visual extras
+
+| Header | Question | Options | Multi? |
+|--------|----------|---------|--------|
+| Extras | Which visual extras? | `Shadows`, `Smart gaps (no gaps with 1 window)`, `Dim inactive windows` | yes |
+| Scratch | Special workspaces (scratchpads)? | `None`, `1-2 (terminal + notes)`, `3+ (terminal, notes, music, etc.)` | no |
+
+#### Batch 10 — Window behavior and app rules
+
+| Header | Question | Options | Multi? |
+|--------|----------|---------|--------|
+| Swallow | Window swallowing? (terminal hides when launching a GUI app from it) | `Yes`, `No` | no |
+| XWayland | Do you run X11-only apps? (some games, older apps) | `Yes — configure XWayland`, `No` | no |
+
+Then ask these as text follow-ups (answers are too varied for selectable options):
+- "Which apps do you use daily? (e.g., Firefox, Discord, Spotify, Steam, VS Code) — I'll set up smart window rules."
+- "Want specific apps on certain workspaces? Common: browser on 2, editor on 3, chat on 4, music on 5."
+- "Any apps you always want floating? Common: calculator, settings dialogs, password managers."
 
 These questions help generate window rules that match the user's actual workflow rather than generic defaults. A developer who uses VS Code + Firefox all day needs different rules than a gamer who runs Steam + Discord.
 
-#### Group G — Keybind preferences *(user can say "defaults" or "i3-like")*
-- **Keybind style?** i3/sway-like (most common) / vim-centric (hjkl everything) / Windows/GNOME-familiar / custom?
-  - *i3-like*: SUPER+Return=terminal, SUPER+D=launcher, SUPER+SHIFT+Q=kill, SUPER+1-0=workspaces — the community standard
-  - *vim-centric*: hjkl for all directional actions, minimal arrow key use, resize/launch submaps
-  - *Windows/GNOME-familiar*: SUPER+E=files, ALT+F4=close, ALT+Tab=cycle, SUPER alone opens launcher
-- **Primary modifier?** SUPER (recommended — avoids app conflicts) / ALT / other? *Default: `$mainMod = SUPER`*
-- **Directional navigation?** arrow keys / hjkl / both? *Default: both — costs nothing and accommodates muscle memory from either background*
-- **Window close bind?** SUPER+Q / SUPER+C / SUPER+SHIFT+Q / SUPER+SHIFT+C? *i3 tradition: SUPER+SHIFT+Q; Hyprland default example: SUPER+C*
-- **Terminal launch bind?** SUPER+Return (i3/sway tradition, most popular) / SUPER+T (GNOME-like) / SUPER+Q (Hyprland example default)?
-- **Resize mode?** submap (enter resize mode with SUPER+R, use arrows/hjkl, Escape to exit) / hold modifier (SUPER+CTRL+arrows) / mouse only (SUPER+RMB drag)? *Default: submap + mouse drag — submap is the most popular community pattern*
-- **Include submaps?** Which ones? resize (most common) / launch (single-key app shortcuts) / power/session (l=lock, e=logout, s=suspend, r=reboot, p=poweroff) / screenshot (f=fullscreen, s=select, w=window)? *Default: resize only*
-- **Number of workspaces?** 10 (SUPER+1 through SUPER+0, most common) / fewer / more? *Beyond 10 requires F-keys or other binds*
-- **Extra workspace navigation?** mouse scroll through workspaces (SUPER+scroll) / next-prev keys (SUPER+Tab) / both? *Default: both*
-- **Bind descriptions?** Use `bindd` flag so keybinds are queryable with `hyprctl binds` and cheatsheet tools? yes/no? *Default: yes — negligible cost, useful for discoverability*
+#### Batch 11 — Keybind preferences
 
-> **Shorthand answers**: If the user says "i3-like", use: SUPER mod, both arrows+hjkl, SUPER+SHIFT+Q to kill, SUPER+Return for terminal, resize submap, 10 workspaces with mouse scroll, bind descriptions on. If they say "defaults" or don't have a preference, use the same i3-like defaults — it's what most Hyprland users expect.
+Tell the user they can say "defaults" or "i3-like" to skip details.
 
-#### Group H — Shell configuration *(ask all at once; user can say "defaults" or "skip")*
-- **Shell:** bash (system default) / zsh (most popular for ricing) / fish (best out-of-box UX) / keep current?
-- **Shell prompt:** starship (cross-shell, fast, recommended) / powerlevel10k (zsh only, wizard-configured) / oh-my-posh / plain default?
-- **Shell plugins?** For zsh: syntax highlighting + autosuggestions + completions (via system packages or zinit)? For fish: fisher + fzf plugin? For bash: ble.sh? Or skip?
-- **Modern CLI utilities?** eza (ls) / bat (cat) / fd (find) / ripgrep (grep) / fzf (fuzzy finder) / zoxide (cd) / fastfetch / btop — install all / pick some / skip?
-- **Shell aliases?** Generate aliases for installed CLI utilities + Hyprland convenience shortcuts? yes/no?
+| Header | Question | Options | Multi? |
+|--------|----------|---------|--------|
+| Style | Keybind style? | `i3/sway-like (Recommended)`, `vim-centric (hjkl everything)`, `Windows/GNOME-familiar`, `Custom` | no |
+| Modifier | Primary modifier key? | `SUPER (Recommended)`, `ALT` | no |
+| Close | Window close keybind? | `SUPER+SHIFT+Q (i3 tradition)`, `SUPER+Q`, `SUPER+C`, `SUPER+SHIFT+C` | no |
+| Terminal | Terminal launch keybind? | `SUPER+Return (i3/sway tradition)`, `SUPER+T (GNOME-like)` | no |
 
-> **Shorthand answers**: If the user says "defaults", use: zsh + starship + system-packaged plugins (syntax highlighting, autosuggestions, completions) + all CLI utilities + aliases. If they say "skip", don't generate any shell config. If they say "fish", use: fish + starship + fisher with fzf plugin + all CLI utilities + fish abbreviations.
+Style descriptions for context:
+- *i3-like*: SUPER+Return=terminal, SUPER+D=launcher, SUPER+SHIFT+Q=kill, SUPER+1-0=workspaces — the community standard
+- *vim-centric*: hjkl for all directional actions, minimal arrow key use, resize/launch submaps
+- *Windows/GNOME-familiar*: SUPER+E=files, ALT+F4=close, ALT+Tab=cycle, SUPER alone opens launcher
+
+#### Batch 12 — More keybind options
+
+| Header | Question | Options | Multi? |
+|--------|----------|---------|--------|
+| Resize | Resize mode? | `Submap (SUPER+R then arrows) (Recommended)`, `Hold modifier (SUPER+CTRL+arrows)`, `Mouse only (SUPER+RMB drag)` | no |
+| Submaps | Which submaps to include? | `Resize only (Recommended)`, `Resize + power/session`, `Resize + launch + power`, `All (resize, launch, power, screenshot)` | no |
+| Directions | Direction keys? | `Both arrows + hjkl (Recommended)`, `Arrows only`, `hjkl only` | no |
+| Workspaces | Number of workspaces? | `10 (SUPER+1-0, most common) (Recommended)`, `Fewer`, `More (requires F-keys)` | no |
+
+> **Shorthand**: If the user picks "i3/sway-like" in Batch 11, you can pre-fill sensible defaults for Batch 12 (submap resize, both arrows+hjkl, 10 workspaces) and ask "These are the standard i3-like defaults — want to change any?" instead of asking each question. If they say "defaults", use the same i3-like defaults — it's what most Hyprland users expect. Always use `bindd` (bind descriptions) — negligible cost, useful for discoverability.
+
+#### Batch 13 — Shell configuration
+
+Tell the user they can say "defaults" or "skip" for this batch.
+
+| Header | Question | Options | Multi? |
+|--------|----------|---------|--------|
+| Shell | Shell? | `zsh (most popular for ricing)`, `fish (best out-of-box UX)`, `bash (system default)`, `Keep current` | no |
+| Prompt | Shell prompt? | `starship (cross-shell, fast) (Recommended)`, `powerlevel10k (zsh only)`, `oh-my-posh`, `Plain default` | no |
+| CLI tools | Modern CLI utilities? (eza, bat, fd, ripgrep, fzf, zoxide, btop) | `Install all (Recommended)`, `Let me pick`, `Skip` | no |
+| Aliases | Generate shell aliases for installed tools? | `Yes (Recommended)`, `No` | no |
+
+> **Shorthand**: If the user says "defaults", use: zsh + starship + system-packaged plugins (syntax highlighting, autosuggestions, completions) + all CLI utilities + aliases. If "skip", don't generate any shell config. If "fish", use: fish + starship + fisher with fzf plugin + all CLI utilities + fish abbreviations.
 
 #### Pre-generation confirmation
 
@@ -275,7 +333,7 @@ env = XDG_SESSION_DESKTOP,Hyprland
 env = XDG_CURRENT_DESKTOP,Hyprland
 ```
 
-#### Visual style — translating Group F answers
+#### Visual style — translating Batch 7-9 answers
 
 Load `references/ricing.md` now — it has complete values for decoration, animations, smart gaps, special workspaces, opacity rules, and layer rules.
 
@@ -288,16 +346,16 @@ Key summaries:
 - **Smart gaps**: uses `workspace = w[tv1], gapsout:0, gapsin:0` — see `references/ricing.md`.
 - **Special workspaces**: `togglespecialworkspace` + `movetoworkspacesilent` + `dim_special` — see `references/ricing.md`.
 
-#### Keybinds — translating Group G answers
+#### Keybinds — translating Batch 11-12 answers
 
 Load `references/keybinds.md` and `references/dispatchers.md` now. Generate `keybinds.conf` tailored to the user's chosen style. Always define `$mainMod` as a variable at the top so users can change their modifier in one place.
 
 **Core structure** — every keybinds.conf needs these sections:
 
 1. **Modifier variable**: `$mainMod = SUPER` (or user's choice)
-2. **App launches**: terminal, launcher, file manager, browser — use the apps chosen in Group B/D
+2. **App launches**: terminal, launcher, file manager, browser — use the apps chosen in Batches 2-5
 3. **Window management**: kill, float toggle, fullscreen, pseudo-tile, split toggle
-4. **Focus navigation**: directional focus (arrows and/or hjkl based on Group G answer)
+4. **Focus navigation**: directional focus (arrows and/or hjkl based on Batch 12 answer)
 5. **Window movement**: move windows directionally (SHIFT layer of focus binds)
 6. **Workspace switching**: `$mainMod + 1-0` for workspaces 1-10
 7. **Window-to-workspace**: `$mainMod + SHIFT + 1-0`
@@ -305,7 +363,7 @@ Load `references/keybinds.md` and `references/dispatchers.md` now. Generate `key
 9. **Media/brightness keys**: always include with `el` flags (repeat + locked)
 10. **Screenshots**: based on chosen tool (grimblast/hyprshot/grim+slurp)
 11. **Utility binds**: lock screen, clipboard history, color temperature toggle
-12. **Submaps**: based on user's Group G submap choices
+12. **Submaps**: based on user's Batch 12 submap choices
 
 **Style presets** — map the user's keybind style answer to concrete binds:
 
@@ -437,7 +495,7 @@ Load `references/launchers.md` for complete config formats, theming examples, an
 - **anyrun**: `~/.config/anyrun/config.ron` (RON format) + `~/.config/anyrun/style.css` (GTK4 CSS). Plugin-based architecture — each search mode is a .so file. Supports calculator, translation, symbols out of the box.
 
 #### wlogout
-Load `references/wlogout.md` for complete layout format, CSS theming, and launch options. Generate if the user chose wlogout in Group D:
+Load `references/wlogout.md` for complete layout format, CSS theming, and launch options. Generate if the user chose wlogout in Batch 5:
 - `~/.config/wlogout/layout` — JSON array of button objects (label, action, text, keybind)
 - `~/.config/wlogout/style.css` — GTK CSS with per-button icon and hover color styling
 - Use `loginctl lock-session` for lock (not `hyprlock` directly), `hyprctl dispatch exit` for logout (or `uwsm stop` if using uwsm)
@@ -483,7 +541,7 @@ code --install-extension Catppuccin.catppuccin-vsc-icons  # file icons
 }
 ```
 
-Adjust the color theme name to match the user's flavor (Mocha/Macchiato/Frappe/Latte) and the font to match their Group E choice.
+Adjust the color theme name to match the user's flavor (Mocha/Macchiato/Frappe/Latte) and the font to match their Batch 6 choice.
 
 **Transparency** — use a Hyprland window rule, not VS Code's built-in transparency settings. Match the class to the installed variant:
 ```ini
@@ -549,10 +607,10 @@ Load `references/theming.md`. For a complete rice, generate:
 - For font rendering: optionally generate `~/.config/fontconfig/fonts.conf`
 
 #### Shell configuration
-Load `references/shell.md` now. Generate shell config based on Group H answers:
+Load `references/shell.md` now. Generate shell config based on Batch 13 answers:
 
 - **Shell rc file**: Generate `.zshrc`, `config.fish`, or additions to `.bashrc` depending on chosen shell. Include: prompt initialization, plugin sourcing, tool initialization (zoxide, fzf), and aliases/abbreviations for installed CLI utilities.
-- **Starship config**: If using starship, generate `~/.config/starship.toml` with a theme-matched palette (e.g., Catppuccin Mocha colors) and Nerd Font symbols. Use the same font the user chose in Group E.
+- **Starship config**: If using starship, generate `~/.config/starship.toml` with a theme-matched palette (e.g., Catppuccin Mocha colors) and Nerd Font symbols. Use the same font the user chose in Batch 6.
 - **Powerlevel10k**: If using p10k, add the source line to `.zshrc` and tell the user to run `p10k configure` after install — the wizard generates `~/.p10k.zsh` interactively.
 - **Plugin setup**: For zsh with system packages, add `source` lines for syntax highlighting + autosuggestions. For zsh with zinit, generate the zinit block. For fish with fisher, add fisher install commands to `install.sh`.
 - **CLI utilities**: Add initialization lines for zoxide and fzf to the shell rc. Generate aliases (bash/zsh) or abbreviations (fish) only for tools the user chose to install. **zoxide `--cmd cd` pitfall**: Do NOT use `alias cd=z` or `abbr -a cd z` — this breaks autosuggestions/completions because `z` is a shell function, not a real command. Instead, use `zoxide init <shell> --cmd cd | source` which makes zoxide register directly as `cd` (and `cdi` for interactive mode) with proper completions. This applies to all shells.
@@ -690,7 +748,7 @@ Generate an uninstall script alongside install.sh. The uninstall script should c
 
 ---
 
-### Step 5c: Dotfiles repo with GNU Stow (if user said yes in Group A)
+### Step 5c: Dotfiles repo with GNU Stow (if user said yes in Batch 2)
 
 Load `references/dotfiles.md` now. When the user wants a dotfiles repo, the entire output structure changes — instead of writing configs directly to `~/.config/`, generate them inside a stow-managed git repo at `~/dotfiles/`.
 
@@ -834,7 +892,7 @@ Walk the user through `stow --adopt` if they want to pull in existing files, but
 
 ### Utility keybinds (always include regardless of style)
 
-These complement the style-specific binds generated from Group G. Always include them in `keybinds.conf`:
+These complement the style-specific binds generated from Batches 11-12. Always include them in `keybinds.conf`:
 
 ```ini
 # Lock screen — always use loginctl, not hyprlock directly (lets hypridle hooks fire)
@@ -843,7 +901,7 @@ bindd = $mainMod, L, Lock screen, exec, loginctl lock-session
 # Clipboard history (if using cliphist — substitute rofi/fuzzel for wofi as needed)
 bindd = $mainMod, V, Clipboard history, exec, cliphist list | wofi --dmenu | cliphist decode | wl-copy
 
-# Screenshots (grim+slurp — substitute grimblast/hyprshot based on Group D choice)
+# Screenshots (grim+slurp — substitute grimblast/hyprshot based on Batch 4 choice)
 bindd = , Print, Screenshot full screen, exec, grim ~/Pictures/screenshot-$(date +%Y%m%d-%H%M%S).png
 bindd = SHIFT, Print, Screenshot region, exec, grim -g "$(slurp)" ~/Pictures/screenshot-$(date +%Y%m%d-%H%M%S).png
 bindd = CTRL, Print, Screenshot region to clipboard, exec, grim -g "$(slurp)" - | wl-copy
